@@ -7,14 +7,15 @@ A comprehensive fuel system mod for Schedule I that adds realistic fuel consumpt
 ### Current Implementation (v1.0.0)
 - **Fuel System**: All vehicles now consume fuel based on throttle input and speed
 - **Fuel Gauge UI**: Real-time fuel level display when driving vehicles
-- **Engine Effects**: Vehicles stop working when out of fuel, with engine stuttering at very low fuel
+- **Engine Effects**: Vehicles stop working when out of fuel, with engine stuttering at very low fuel (engine stuttering needs improvement)
+- **Save/Load**: Fuel levels persist across game sessions
 
 ### Planned Features
 - **Fuel Stations**: Dedicated refueling locations around the map
 - **Fuel Economy**: Different consumption rates for different vehicle types
 - **Fuel Costs**: Economic integration with the game's money system
 - **Multiplayer Sync**: Fuel levels synchronized across multiplayer sessions
-- **Save/Load**: Fuel levels persist across game sessions
+
 
 ## Installation
 
@@ -25,19 +26,13 @@ A comprehensive fuel system mod for Schedule I that adds realistic fuel consumpt
 
 ## Configuration
 
-The mod creates a configuration file at `UserData/S1FuelMod.cfg` with the following options:
+The mod uses MelonPreferences, you can find these configuration options under the "S1FuelMod" category:
 
 - **EnableFuelSystem** (default: true): Enable or disable the entire fuel system
 - **FuelConsumptionMultiplier** (default: 1.0): Adjust fuel consumption rate (0.5 = half consumption, 2.0 = double consumption)
 - **DefaultFuelCapacity** (default: 50.0): Default fuel tank capacity in liters
 - **ShowFuelGauge** (default: true): Show fuel gauge UI when driving
 - **EnableDebugLogging** (default: false): Enable detailed debug logging
-
-## Debug Controls
-
-- **F9**: Toggle fuel system debug information
-- **F10**: Refill all vehicles to full capacity
-- **F11**: Drain 10L of fuel from all vehicles
 
 ## Technical Details
 
@@ -47,18 +42,6 @@ The mod creates a configuration file at `UserData/S1FuelMod.cfg` with the follow
 - Consumption scales with throttle input and vehicle speed
 - High-speed driving (>50 km/h) increases consumption
 
-### Warning Thresholds
-- Low fuel warning: 20% of tank capacity
-- Critical fuel warning: 5% of tank capacity
-- Engine cutoff: 0L (empty tank)
-- Engine stuttering: Below 2L
-
-### UI Elements
-- Fuel gauge positioned in top-left corner of screen
-- Color-coded fuel level (green → yellow → red)
-- Percentage and liter display
-- Pulsing warning icon for critical fuel levels
-
 ## Development Setup
 
 ### Prerequisites
@@ -66,11 +49,11 @@ The mod creates a configuration file at `UserData/S1FuelMod.cfg` with the follow
 - .NET Framework 4.7.2 or later
 - Schedule I game installed (both Mono and Il2cpp versions if testing both)
 
-### Project Configuration
+### (Main Branch) Project Configuration
 
 #### 1. Clone the Repository
 ```bash
-git clone https://github.com/yourusername/S1FuelMod.git
+git clone https://github.com/ifBars/S1FuelMod.git
 cd S1FuelMod
 ```
 
@@ -129,14 +112,6 @@ To disable auto-deploy, comment out the `<Target Name="PostBuild">` section in t
 If auto-deploy is disabled, manually copy the built DLL:
 - Mono: `bin\Mono\S1FuelMod_Mono.dll` → `[GamePath]\Mods\`
 - Il2cpp: `bin\Il2cpp\S1FuelMod_Il2cpp.dll` → `[GamePath]\Mods\`
-
-### Development Workflow
-
-1. **Make Changes**: Edit the source code in the appropriate folders
-2. **Build**: Use the appropriate configuration (Mono for quick testing, Il2cpp for final testing)
-3. **Test**: Launch the game and test your changes
-4. **Debug**: Use the debug controls (F9, F10, F11) to test functionality
-5. **Commit**: Commit your changes with descriptive messages
 
 ### Code Style Guidelines
 - Follow C# coding conventions
