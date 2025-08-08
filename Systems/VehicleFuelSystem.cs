@@ -110,7 +110,8 @@ namespace S1FuelMod.Systems
         {
             try
             {
-                if (!Core.Instance?.EnableFuelSystem == true || _landVehicle == null)
+                // Skip update if fuel system is disabled or vehicle is not occupied by the local player
+                if (!Core.Instance?.EnableFuelSystem == true || _landVehicle == null || !_landVehicle.localPlayerIsInVehicle)
                     return;
 
                 // Update engine running state
