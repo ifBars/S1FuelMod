@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -18,13 +19,16 @@ namespace S1FuelMod.UI
         private GameObject? _gaugeContainer;
         private RectTransform? _gaugeRect;
         private Image? _gaugeBackground;
-        private Image? _gaugeFill;
-        private Text? _fuelText;
+        //private Image? _gaugeFill;
+        private Slider? _gaugeSlider;
+        private TextMeshProUGUI? _fuelText;
         private Image? _warningIcon;
+        private Image? _gaugeSliderImage;
 
         private bool _isVisible = false;
         private float _lastUpdateTime = 0f;
         private Canvas? _parentCanvas;
+        private CanvasGroup? _fuelTextParentGroup;
 
         public bool IsVisible => _isVisible && _gaugeContainer != null && _gaugeContainer.activeInHierarchy;
 
@@ -207,12 +211,28 @@ namespace S1FuelMod.UI
                 fillRect.offsetMin = Vector2.zero;
                 fillRect.offsetMax = Vector2.zero;
 
-                _gaugeFill = fill.AddComponent<Image>();
-                _gaugeFill.color = Constants.UI.Colors.FUEL_NORMAL;
-                _gaugeFill.type = Image.Type.Filled;
-                _gaugeFill.fillMethod = Image.FillMethod.Horizontal;
-                _gaugeFill.fillOrigin = 0; // Start from left
-                _gaugeFill.fillAmount = 1.0f; // Start with full gauge
+                //_gaugeFill = fill.AddComponent<Image>();
+                //_gaugeFill.color = Constants.UI.Colors.GAUGE_BACKGROUND;
+                //_gaugeFill.type = Image.Type.Filled;
+                //_gaugeFill.fillMethod = Image.FillMethod.Horizontal;
+                //_gaugeFill.fillOrigin = 0; // Start from left
+                //_gaugeFill.fillAmount = 1.0f; // Start with full gauge
+
+                _gaugeSlider = fill.AddComponent<Slider>();
+                _gaugeSlider.direction = Slider.Direction.RightToLeft;
+                _gaugeSlider.minValue = 0f;
+                _gaugeSlider.maxValue = 100f;
+
+                GameObject sliderFill = new GameObject("SliderFill");
+                sliderFill.transform.SetParent(fill.transform, false);
+                RectTransform sliderFillRect = sliderFill.AddComponent<RectTransform>();
+                _gaugeSliderImage = sliderFill.AddComponent<Image>();
+                _gaugeSliderImage.color = Constants.UI.Colors.FUEL_NORMAL;
+                sliderFillRect.anchorMin = Vector2.zero;
+                sliderFillRect.anchorMax = Vector2.one;
+                sliderFillRect.offsetMin = Vector2.zero;
+                sliderFillRect.offsetMax = Vector2.zero;
+                _gaugeSlider.fillRect = sliderFillRect;
             }
             catch (Exception ex)
             {
@@ -229,25 +249,46 @@ namespace S1FuelMod.UI
             {
                 GameObject textObj = new GameObject("FuelText");
                 textObj.transform.SetParent(_gaugeContainer!.transform, false);
-
+                _fuelTextParentGroup = textObj.AddComponent<CanvasGroup>();
                 RectTransform textRect = textObj.AddComponent<RectTransform>();
                 textRect.anchorMin = new Vector2(0f, 0.8f);
                 textRect.anchorMax = new Vector2(1f, 1f);
-                textRect.offsetMin = Vector2.zero;
-                textRect.offsetMax = Vector2.zero;
+                textRect.pivot = new Vector2(0f, 1f);
+                textRect.anchoredPosition = new Vector2(0f, -50f);
+                textRect.sizeDelta = new Vector2(400f, 20f);
 
-                _fuelText = textObj.AddComponent<Text>();
-                _fuelText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+                _fuelText = textObj.AddComponent<TextMeshProUGUI>();
+                _fuelText.alignment = TextAlignmentOptions.Left;
                 _fuelText.fontSize = 12;
-                _fuelText.fontStyle = FontStyle.Bold;
+                _fuelText.fontStyle = FontStyles.Bold;
                 _fuelText.color = Color.white;
-                _fuelText.alignment = TextAnchor.MiddleCenter;
-                _fuelText.text = "50.0L (100%)";
+                _fuelText.text = "50.0L (100%)"; // Initial text
 
-                // Add shadow for better readability
                 Shadow shadow = textObj.AddComponent<Shadow>();
                 shadow.effectColor = Color.black;
                 shadow.effectDistance = new Vector2(1, -1);
+
+                //GameObject textObj = new GameObject("FuelText");
+                //textObj.transform.SetParent(_gaugeContainer!.transform, false);
+
+                //RectTransform textRect = textObj.AddComponent<RectTransform>();
+                //textRect.anchorMin = new Vector2(0f, 0.8f);
+                //textRect.anchorMax = new Vector2(1f, 1f);
+                //textRect.offsetMin = Vector2.zero;
+                //textRect.offsetMax = Vector2.zero;
+
+                //_fuelText = textObj.AddComponent<TextMeshProUGUI>();
+                ////_fuelText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+                //_fuelText.fontSize = 12;
+                //_fuelText.fontStyle = FontStyles.Bold;
+                //_fuelText.color = Color.white;
+                //_fuelText.alignment = TextAlignmentOptions.Midline;
+                //_fuelText.text = "50.0L (100%)";
+
+                //// Add shadow for better readability
+                //Shadow shadow = textObj.AddComponent<Shadow>();
+                //shadow.effectColor = Color.black;
+                //shadow.effectDistance = new Vector2(1, -1);
             }
             catch (Exception ex)
             {
@@ -297,13 +338,13 @@ namespace S1FuelMod.UI
                 if (_fuelSystem != null)
                 {
                     ModLogger.UIDebug($"FuelGaugeUI: Setting up event listeners for vehicle {_fuelSystem.VehicleGUID.Substring(0, 8)}...");
-                    
+
                     _fuelSystem.OnFuelLevelChanged.AddListener(OnFuelLevelChanged);
                     _fuelSystem.OnFuelPercentageChanged.AddListener(OnFuelPercentageChanged);
                     _fuelSystem.OnLowFuelWarning.AddListener(OnLowFuelWarning);
                     _fuelSystem.OnCriticalFuelWarning.AddListener(OnCriticalFuelWarning);
                     _fuelSystem.OnFuelEmpty.AddListener(OnFuelEmpty);
-                    
+
                     ModLogger.UIDebug($"FuelGaugeUI: Event listeners set up successfully for vehicle {_fuelSystem.VehicleGUID.Substring(0, 8)}...");
                 }
                 else
@@ -345,7 +386,7 @@ namespace S1FuelMod.UI
         {
             try
             {
-                if (_fuelSystem == null) 
+                if (_fuelSystem == null)
                 {
                     ModLogger.UIDebug("FuelGaugeUI: UpdateDisplay called but fuel system is null");
                     return;
@@ -356,11 +397,18 @@ namespace S1FuelMod.UI
                 float percentage = _fuelSystem.FuelPercentage;
 
                 // Update fill amount
-                if (_gaugeFill != null)
+                //if (_gaugeFill != null)
+                //{
+                //    float fillAmount = percentage / 100f;
+                //    _gaugeFill.fillAmount = fillAmount;
+                //    _gaugeSlider.value = percentage; // Update slider value
+                //}
+                if (_gaugeSlider != null && _gaugeSliderImage != null)
                 {
-                    float fillAmount = percentage / 100f;
-                    _gaugeFill.fillAmount = fillAmount;
+                    // Update slider fill amount
+                    _gaugeSlider.value = percentage;
                 }
+                ModLogger.UIDebug($"FuelGaugeUI: Percentage shown: {percentage}");
 
                 // Update text
                 if (_fuelText != null)
@@ -388,7 +436,7 @@ namespace S1FuelMod.UI
         {
             try
             {
-                if (_gaugeFill == null || _fuelText == null) return;
+                if (_fuelText == null) return;
 
                 Color fillColor;
                 Color textColor = Color.white;
@@ -408,7 +456,7 @@ namespace S1FuelMod.UI
                     fillColor = Constants.UI.Colors.FUEL_NORMAL;
                 }
 
-                _gaugeFill.color = fillColor;
+                _gaugeSliderImage.color = Color.Lerp(_gaugeSliderImage.color, fillColor, Time.deltaTime * 5f);
                 _fuelText.color = textColor;
             }
             catch (Exception ex)
@@ -464,6 +512,12 @@ namespace S1FuelMod.UI
                 if (_gaugeContainer != null)
                 {
                     _gaugeContainer.SetActive(true);
+                    if (_gaugeSliderImage != null)
+                    {
+                        Color newColor = _gaugeSliderImage.color;
+                        newColor.a = 1f; // Ensure full opacity
+                        _gaugeSliderImage.color = newColor; // Reset color
+                    }
                     _isVisible = true;
                     UpdateDisplay();
                     ModLogger.UIDebug($"FuelGaugeUI: Shown for vehicle {_fuelSystem.VehicleGUID.Substring(0, 8)}...");
@@ -484,6 +538,12 @@ namespace S1FuelMod.UI
             {
                 if (_gaugeContainer != null)
                 {
+                    if ( _gaugeSliderImage != null )
+                    {
+                        Color newColor = _gaugeSliderImage.color;
+                        newColor.a = 0f; // Fade out
+                        _gaugeSliderImage.color = newColor; // Apply fade
+                    }
                     _gaugeContainer.SetActive(false);
                     _isVisible = false;
                     ModLogger.UIDebug($"FuelGaugeUI: Hidden for vehicle {_fuelSystem.VehicleGUID.Substring(0, 8)}...");
@@ -555,7 +615,7 @@ namespace S1FuelMod.UI
 
                 _gaugeRect = null;
                 _gaugeBackground = null;
-                _gaugeFill = null;
+                _gaugeSliderImage = null;
                 _fuelText = null;
                 _warningIcon = null;
                 _isVisible = false;

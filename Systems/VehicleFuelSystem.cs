@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 using UnityEngine.Events;
 using ScheduleOne.Vehicles;
@@ -19,7 +19,7 @@ namespace S1FuelMod.Systems
         [SerializeField] private float idleConsumptionRate = 0.5f; // liters per hour when idling
 
         [Header("Warning Settings")]
-        [SerializeField] private float lowFuelThreshold = 20f; // percentage
+        [SerializeField] private float lowFuelThreshold = 30f; // percentage
         [SerializeField] private float criticalFuelThreshold = 5f; // percentage
 
         // Component references
@@ -174,7 +174,7 @@ namespace S1FuelMod.Systems
             {
                 // Active driving - scale consumption with throttle input
                 consumptionRate = Mathf.Lerp(idleConsumptionRate, baseFuelConsumptionRate, throttleInput);
-                
+
                 // Additional consumption for high speeds
                 if (_landVehicle.speed_Kmh > 50f)
                 {
@@ -374,7 +374,7 @@ namespace S1FuelMod.Systems
             maxFuelCapacity = data.MaxFuelCapacity;
             currentFuelLevel = data.CurrentFuelLevel;
             baseFuelConsumptionRate = data.FuelConsumptionRate;
-            
+
             TriggerFuelLevelChanged();
             ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... fuel data loaded");
         }
