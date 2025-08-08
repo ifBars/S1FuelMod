@@ -31,6 +31,7 @@ namespace S1FuelMod
         // Mod Systems
         private FuelSystemManager? _fuelSystemManager;
         private FuelUIManager? _fuelUIManager;
+        private FuelStationManager? _fuelStationManager;
 
         // Public properties for accessing preferences
         public bool EnableFuelSystem => _enableFuelSystem?.Value ?? true;
@@ -68,6 +69,7 @@ namespace S1FuelMod
                 ModLogger.Info("  F10 - Refill All Vehicles");
                 ModLogger.Info("  F11 - Drain All Vehicles (10L)");
                 ModLogger.Info("  F12 - Test UI Elements Directly");
+                ModLogger.Info("  F5 - Show Fuel Station Info & Force Rescan");
             }
             catch (Exception ex)
             {
@@ -114,6 +116,7 @@ namespace S1FuelMod
                 // Update fuel systems
                 _fuelSystemManager?.Update();
                 _fuelUIManager?.Update();
+                _fuelStationManager?.Update();
             }
             catch (Exception ex)
             {
@@ -203,6 +206,10 @@ namespace S1FuelMod
                 _fuelUIManager = new FuelUIManager();
                 ModLogger.Info("Fuel UI manager initialized");
 
+                // Initialize fuel station manager
+                _fuelStationManager = new FuelStationManager();
+                ModLogger.Info("Fuel station manager initialized");
+
                 ModLogger.Info("All fuel systems initialized successfully");
             }
             catch (Exception ex)
@@ -253,6 +260,11 @@ namespace S1FuelMod
                 if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F12))
                 {
                     TestUIElementsDirectly();
+                }
+
+                if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F5))
+                {
+                    ShowFuelStationInfo();
                 }
             }
             catch (Exception ex)
@@ -344,6 +356,63 @@ namespace S1FuelMod
         }
 
         /// <summary>
+        /// Show fuel station information and force rescan
+        /// </summary>
+        private void ShowFuelStationInfo()
+        {
+            try
+            {
+                var fuelStationManager = GetFuelStationManager();
+                if (fuelStationManager == null)
+                {
+                    ModLogger.Info("F5: No fuel station manager available");
+                    return;
+                }
+
+                // Force a rescan
+                fuelStationManager.ForceScan();
+
+                // Get and display statistics
+                var stats = fuelStationManager.GetStatistics();
+                var activeFuelStations = fuelStationManager.GetActiveFuelStations();
+
+                ModLogger.Info("=== Fuel Station Info ===");
+                ModLogger.Info($"Total Stations: {stats.TotalStations}");
+                ModLogger.Info($"Active Stations: {stats.ActiveStations}");
+                ModLogger.Info($"Inactive Stations: {stats.InactiveStations}");
+
+                if (activeFuelStations.Count > 0)
+                {
+                    ModLogger.Info("Active Fuel Stations:");
+                    for (int i = 0; i < activeFuelStations.Count && i < 10; i++) // Limit to first 10
+                    {
+                        var station = activeFuelStations[i];
+                        if (station != null && station.gameObject != null)
+                        {
+                            ModLogger.Info($"  {i + 1}. {station.gameObject.name} at {station.transform.position}");
+                        }
+                    }
+                    
+                    if (activeFuelStations.Count > 10)
+                    {
+                        ModLogger.Info($"  ... and {activeFuelStations.Count - 10} more stations");
+                    }
+                }
+                else
+                {
+                    ModLogger.Info("No active fuel stations found!");
+                    ModLogger.Info("Make sure there are GameObjects named 'Bowser (EMC Merge)' or 'Bowser  (EMC Merge)' in the scene");
+                }
+
+                ModLogger.Info("=== End Fuel Station Info ===");
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("F5: Error showing fuel station info", ex);
+            }
+        }
+
+        /// <summary>
         /// Show information about the current vehicle player is in
         /// </summary>
         private void ShowCurrentVehicleInfo()
@@ -408,6 +477,7 @@ namespace S1FuelMod
                 // Clean up systems
                 _fuelSystemManager?.Dispose();
                 _fuelUIManager?.Dispose();
+                _fuelStationManager?.Dispose();
 
                 Instance = null;
             }
@@ -447,6 +517,14 @@ namespace S1FuelMod
         public FuelUIManager? GetFuelUIManager()
         {
             return _fuelUIManager;
+        }
+
+        /// <summary>
+        /// Get the fuel station manager instance
+        /// </summary>
+        public FuelStationManager? GetFuelStationManager()
+        {
+            return _fuelStationManager;
         }
     }
 }
