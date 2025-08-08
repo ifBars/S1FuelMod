@@ -195,6 +195,10 @@ namespace S1FuelMod
                 _fuelSystemManager = new FuelSystemManager();
                 ModLogger.Info("Fuel system manager initialized");
 
+                // Update Harmony patches with the fuel system manager now available
+                HarmonyPatches.SetModInstance(this);
+                ModLogger.Info("Harmony patches updated with fuel systems");
+
                 // Initialize UI manager
                 _fuelUIManager = new FuelUIManager();
                 ModLogger.Info("Fuel UI manager initialized");
