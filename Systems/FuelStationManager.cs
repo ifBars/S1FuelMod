@@ -12,11 +12,10 @@ namespace S1FuelMod.Systems
     public class FuelStationManager : IDisposable
     {
         private readonly List<FuelStation> _activeFuelStations = new List<FuelStation>();
-        private readonly string FUEL_STATION_OBJECT_NAME = "Bowser  (EMC Merge)"; // Note: double space as mentioned by user
-        private readonly string FUEL_STATION_OBJECT_NAME_ALT = "Bowser (EMC Merge)"; // Alternative with single space
+        private readonly string FUEL_STATION_OBJECT_NAME = "Bowser  (EMC Merge)";
+        private readonly string FUEL_STATION_OBJECT_NAME_ALT = "Bowser (EMC Merge)";
         
-        private float _lastScanTime = 0f;
-        private const float SCAN_INTERVAL = 10f; // Scan for new fuel stations every 10 seconds
+        private bool _hasInitialized = false;
 
         public FuelStationManager()
         {
@@ -26,6 +25,7 @@ namespace S1FuelMod.Systems
             {
                 // Initial scan for fuel stations
                 ScanForFuelStations();
+                _hasInitialized = true;
                 
                 ModLogger.Info($"FuelStationManager: Initialized with {_activeFuelStations.Count} fuel stations");
             }
@@ -42,14 +42,8 @@ namespace S1FuelMod.Systems
         {
             try
             {
-                // Periodically scan for new fuel stations
-                if (Time.time - _lastScanTime > SCAN_INTERVAL)
-                {
-                    ScanForFuelStations();
-                    _lastScanTime = Time.time;
-                }
-
-                // Clean up destroyed fuel stations
+                // Only clean up destroyed fuel stations, no periodic scanning needed
+                // since fuel stations are static objects that don't change during gameplay
                 CleanupDestroyedStations();
             }
             catch (Exception ex)

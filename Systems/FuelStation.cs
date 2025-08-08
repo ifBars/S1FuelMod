@@ -174,7 +174,7 @@ namespace S1FuelMod.Systems
                 }
 
                 // Check if player has enough money for at least 1 liter
-                if (_moneyManager != null && _moneyManager.SyncAccessor_onlineBalance < pricePerLiter)
+                if (_moneyManager != null && _moneyManager.onlineBalance < pricePerLiter)
                 {
                     ShowMessage($"Insufficient funds! Need {MoneyManager.FormatAmount(pricePerLiter)} minimum", MessageType.Error);
                     return;
@@ -271,7 +271,7 @@ namespace S1FuelMod.Systems
             float costForThisFuel = fuelToAdd * pricePerLiter;
 
             // Check if player has enough money for this fuel amount
-            if (_moneyManager != null && _moneyManager.SyncAccessor_onlineBalance < costForThisFuel)
+            if (_moneyManager != null && _moneyManager.onlineBalance < costForThisFuel)
             {
                 // Stop refueling if no money left
                 StopRefueling();
