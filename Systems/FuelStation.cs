@@ -20,8 +20,8 @@ namespace S1FuelMod.Systems
         [Header("Fuel Station Settings")]
         [SerializeField] private float refuelRate = 10f; // liters per second
         [SerializeField] private float pricePerLiter = 1.5f;
-        [SerializeField] private float maxInteractionDistance = 8f;
-        [SerializeField] private float vehicleDetectionRadius = 12f;
+        [SerializeField] private float maxInteractionDistance = 4f;
+        [SerializeField] private float vehicleDetectionRadius = 6f;
         [SerializeField] private LayerMask vehicleLayerMask = ~0; // All layers by default
         
         [Header("Audio")]

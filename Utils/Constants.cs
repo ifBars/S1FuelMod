@@ -56,12 +56,12 @@ namespace S1FuelMod.Utils
             public const float CRITICAL_FUEL_WARNING_THRESHOLD = 5f;
 
             // Fuel station settings
-            public const float REFUEL_RATE = 10f; // liters per second
-            public const float FUEL_PRICE_PER_LITER = 1.5f;
+            public const float REFUEL_RATE = 5f; // liters per second
+            public const float FUEL_PRICE_PER_LITER = 1.80f;
 
             // Performance effects
             public const float ENGINE_CUTOFF_FUEL_LEVEL = 0f;
-            public const float ENGINE_SPUTTER_FUEL_LEVEL = 2f;
+            public const float ENGINE_SPUTTER_FUEL_LEVEL = 4f;
         }
 
         /// <summary>
