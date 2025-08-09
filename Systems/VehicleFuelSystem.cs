@@ -33,6 +33,7 @@ namespace S1FuelMod.Systems
         private bool _lowFuelWarningShown = false;
         private bool _criticalFuelWarningShown = false;
         private float _lastConsumptionTime = 0f;
+        private VehicleType _vehicleType = VehicleType.Other;
 
         // Events for UI updates
         public UnityEvent<float> OnFuelLevelChanged = new UnityEvent<float>();
@@ -71,6 +72,7 @@ namespace S1FuelMod.Systems
                 // Initialize with mod preferences
                 if (Core.Instance != null)
                 {
+                    SetVehicleType();
                     globalMaxFuelCapacity = Core.Instance.DefaultFuelCapacity;
                     maxFuelCapacity = SetMaxFuelCapacity();
                     currentFuelLevel = maxFuelCapacity; // Start with full tank for testing
@@ -146,15 +148,26 @@ namespace S1FuelMod.Systems
         /// </summary>
         private float SetMaxFuelCapacity()
         {
-            float newMaxCapacity = _landVehicle.vehicleName switch
+            //float newMaxCapacity = _landVehicle.vehicleName switch
+            //{
+            //    "Shitbox" => Core.Instance.ShitboxFuelCapacity,
+            //    "Veeper" => Core.Instance.VeeperFuelCapacity,
+            //    "Bruiser" => Core.Instance.BruiserFuelCapacity,
+            //    "Dinkler" => Core.Instance.DinklerFuelCapacity,
+            //    "Hounddog" => Core.Instance.HounddogFuelCapacity,
+            //    "Cheetah" => Core.Instance.CheetahFuelCapacity,
+            //    _ => 16f // Default for unknown vehicles
+            //};
+            float newMaxCapacity = _vehicleType switch
             {
-                "Shitbox" => Core.Instance.ShitboxFuelCapacity,
-                "Veeper" => Core.Instance.VeeperFuelCapacity,
-                "Bruiser" => Core.Instance.BruiserFuelCapacity,
-                "Dinkler" => Core.Instance.DinklerFuelCapacity,
-                "Hounddog" => Core.Instance.HounddogFuelCapacity,
-                "Cheetah" => Core.Instance.CheetahFuelCapacity,
-                _ => 16f // Default for unknown vehicles
+                VehicleType.Shitbox => Core.Instance.ShitboxFuelCapacity,
+                VehicleType.Veeper => Core.Instance.VeeperFuelCapacity,
+                VehicleType.Bruiser => Core.Instance.BruiserFuelCapacity,
+                VehicleType.Dinkler => Core.Instance.DinklerFuelCapacity,
+                VehicleType.Hounddog => Core.Instance.HounddogFuelCapacity,
+                VehicleType.Cheetah => Core.Instance.CheetahFuelCapacity,
+                VehicleType.Other => Core.Instance.DefaultFuelCapacity,
+                _ => Core.Instance.DefaultFuelCapacity // Fallback for null or unknown types
             };
             return newMaxCapacity;
         }
@@ -400,6 +413,34 @@ namespace S1FuelMod.Systems
             ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... fuel data loaded");
         }
 
+        private void SetVehicleType()
+        {
+            switch (_landVehicle.vehicleName)
+            {
+                case "Shitbox":
+                    _vehicleType = VehicleType.Shitbox;
+                    break;
+                case "Veeper":
+                    _vehicleType = VehicleType.Veeper;
+                    break;
+                case "Bruiser":
+                    _vehicleType = VehicleType.Bruiser;
+                    break;
+                case "Dinkler":
+                    _vehicleType = VehicleType.Dinkler;
+                    break;
+                case "Hounddog":
+                    _vehicleType = VehicleType.Hounddog;
+                    break;
+                case "Cheetah":
+                    _vehicleType = VehicleType.Cheetah;
+                    break;
+                default:
+                    _vehicleType = VehicleType.Other;
+                    break;
+            }
+        }
+
         private void OnDestroy()
         {
             try
@@ -429,5 +470,16 @@ namespace S1FuelMod.Systems
         public float CurrentFuelLevel;
         public float MaxFuelCapacity;
         public float FuelConsumptionRate;
+    }
+
+    public enum VehicleType
+    {
+        Shitbox,
+        Veeper,
+        Bruiser,
+        Dinkler,
+        Hounddog,
+        Cheetah,
+        Other
     }
 }
