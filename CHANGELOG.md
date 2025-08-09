@@ -7,7 +7,7 @@
 ## 2025‑08‑09
 
 ### Master branch (initialization and gameplay tuning)
-- **master · Tyler · 1c817f7** — Added per-vehicle fuel consumption rates. Implemented logic in `VehicleFuelSystem` to allow different vehicle types to consume fuel at unique rates based on their profile or characteristics. This enables fine-tuned balancing for economy vs performance across vehicle classes (e.g., heavier vehicles burn more fuel, smaller ones are more efficient).
+- **master · SirTidez · 1c817f7** — Added per-vehicle fuel consumption rates. Implemented logic in `VehicleFuelSystem` to allow different vehicle types to consume fuel at unique rates based on their profile or characteristics. This enables fine-tuned balancing for economy vs performance across vehicle classes (e.g., heavier vehicles burn more fuel, smaller ones are more efficient).
 - **master · SirTidez · 458c955** — Update README to match new project structure and scope (mirrors current feature set and setup).
 - **master · SirTidez · d57262a** — Fix distance gating so refueling requires both the **player** and the **vehicle** to be near the pump (prevents accidental fills from far away). Maps to “Create proximity refueling logic.”
 - **master · SirTidez · 2fae498** — Add config toggles to enable/disable **dynamic pricing** and **price‑by‑tier** behavior. Trello: “Dynamic Fuel Prices” checklist work.

@@ -4,6 +4,7 @@ using UnityEngine;
 using ScheduleOne.Vehicles;
 using ScheduleOne.DevUtilities;
 using S1FuelMod.Utils;
+using S1FuelMod.Networking;
 
 namespace S1FuelMod.Systems
 {
@@ -16,6 +17,7 @@ namespace S1FuelMod.Systems
         private bool _debugInfoEnabled = false;
         private float _lastDebugLogTime = 0f;
         private const float DEBUG_LOG_INTERVAL = 5f; // seconds
+        private readonly FuelNetworkManager _network = new FuelNetworkManager();
 
         public FuelSystemManager()
         {
@@ -25,6 +27,15 @@ namespace S1FuelMod.Systems
             InitializeExistingVehicles();
             
             ModLogger.Info($"FuelSystemManager: Initialized with {_vehicleFuelSystems.Count} vehicles");
+
+            // Networking
+            _network.Initialize();
+            foreach (var fs in _vehicleFuelSystems.Values)
+            {
+                _network.RegisterFuelSystem(fs);
+            }
+            
+            ModLogger.Info($"FuelSystemManager: Registered {_vehicleFuelSystems.Count} fuel systems with network manager");
         }
 
         /// <summary>
@@ -43,6 +54,9 @@ namespace S1FuelMod.Systems
 
                 // Check for new vehicles that need fuel systems
                 CheckForNewVehicles();
+
+                // Pump networking
+                _network.Update();
             }
             catch (Exception ex)
             {
@@ -92,7 +106,11 @@ namespace S1FuelMod.Systems
                     {
                         if (vehicle != null && !_vehicleFuelSystems.ContainsKey(vehicle.GUID.ToString()))
                         {
-                            AddFuelSystemToVehicle(vehicle);
+                            var fs = AddFuelSystemToVehicle(vehicle);
+                            if (fs != null)
+                            {
+                                _network.RegisterFuelSystem(fs);
+                            }
                         }
                     }
                 }
@@ -139,6 +157,7 @@ namespace S1FuelMod.Systems
                 // Add fuel system component
                 VehicleFuelSystem fuelSystem = vehicle.gameObject.AddComponent<VehicleFuelSystem>();
                 _vehicleFuelSystems[vehicleGUID] = fuelSystem;
+                _network.RegisterFuelSystem(fuelSystem);
 
                 ModLogger.Info($"FuelSystemManager: Added fuel system to {vehicle.VehicleName} ({vehicleGUID.Substring(0, 8)}...)");
                 return fuelSystem;
@@ -160,6 +179,11 @@ namespace S1FuelMod.Systems
             {
                 if (_vehicleFuelSystems.ContainsKey(vehicleGUID))
                 {
+                    var fs = _vehicleFuelSystems[vehicleGUID];
+                    if (fs != null)
+                    {
+                        _network.UnregisterFuelSystem(fs);
+                    }
                     _vehicleFuelSystems.Remove(vehicleGUID);
                     ModLogger.Debug($"FuelSystemManager: Removed fuel system for vehicle {vehicleGUID.Substring(0, 8)}...");
                 }
@@ -361,7 +385,9 @@ namespace S1FuelMod.Systems
                 
                 // Clean up tracking
                 _vehicleFuelSystems.Clear();
-                
+
+                _network.Dispose();
+
                 ModLogger.Info("FuelSystemManager: Disposed");
             }
             catch (Exception ex)

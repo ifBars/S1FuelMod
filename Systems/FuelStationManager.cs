@@ -14,6 +14,10 @@ namespace S1FuelMod.Systems
         private readonly string FUEL_STATION_OBJECT_NAME_ALT = "Bowser (EMC Merge)";
 
         private bool _hasInitialized = false;
+        private float _lastStationCheckTime = 0f;
+        private const float STATION_CHECK_INTERVAL = 15f; // Check for new stations every 15 seconds
+        private const int EXPECTED_FUEL_STATIONS = 4; // Stop checking once we find this many stations
+        private bool _shouldStopChecking = false;
 
         public FuelStationManager()
         {
@@ -40,9 +44,16 @@ namespace S1FuelMod.Systems
         {
             try
             {
-                // Only clean up destroyed fuel stations, no periodic scanning needed
-                // since fuel stations are static objects that don't change during gameplay
+                // Clean up destroyed fuel stations every frame (lightweight operation)
                 CleanupDestroyedStations();
+                
+                // Check for new fuel stations periodically (expensive operation)
+                // Stop checking once we've found the expected number of stations
+                if (!_shouldStopChecking && Time.time - _lastStationCheckTime > STATION_CHECK_INTERVAL)
+                {
+                    CheckForNewFuelStations();
+                    _lastStationCheckTime = Time.time;
+                }
             }
             catch (Exception ex)
             {
@@ -90,10 +101,81 @@ namespace S1FuelMod.Systems
                 {
                     ModLogger.Debug("FuelStationManager: No Bowser objects found in scene");
                 }
+
+                // Check if we've found the expected number of stations and can stop checking
+                if (_activeFuelStations.Count >= EXPECTED_FUEL_STATIONS && !_shouldStopChecking)
+                {
+                    _shouldStopChecking = true;
+                    ModLogger.Info($"FuelStationManager: Found expected number of fuel stations ({EXPECTED_FUEL_STATIONS}), stopping periodic checks for performance");
+                }
             }
             catch (Exception ex)
             {
                 ModLogger.Error("Error scanning for fuel stations", ex);
+            }
+        }
+
+        /// <summary>
+        /// Check for new fuel stations that may have loaded in after initialization
+        /// </summary>
+        private void CheckForNewFuelStations()
+        {
+            try
+            {
+                int newStationsFound = 0;
+
+                // Find all GameObjects with the target name (try both variations)
+                GameObject[] bowserObjects = FindGameObjectsWithName(FUEL_STATION_OBJECT_NAME);
+                GameObject[] bowserObjectsAlt = FindGameObjectsWithName(FUEL_STATION_OBJECT_NAME_ALT);
+
+                // Combine both arrays
+                List<GameObject> allBowserObjects = new List<GameObject>();
+                allBowserObjects.AddRange(bowserObjects);
+                allBowserObjects.AddRange(bowserObjectsAlt);
+
+                foreach (GameObject bowserObject in allBowserObjects)
+                {
+                    if (bowserObject != null)
+                    {
+                        // Get the parent object where the FuelStation component should be
+                        GameObject parentObject = bowserObject.transform.parent?.gameObject;
+                        if (parentObject != null)
+                        {
+                            // Check if this parent already has a fuel station component
+                            FuelStation existingStation = parentObject.GetComponent<FuelStation>();
+                            if (existingStation == null)
+                            {
+                                // New fuel station found, set it up
+                                if (SetupFuelStation(bowserObject))
+                                {
+                                    newStationsFound++;
+                                }
+                            }
+                            else if (!_activeFuelStations.Contains(existingStation))
+                            {
+                                // Existing station not tracked, add to tracking
+                                _activeFuelStations.Add(existingStation);
+                                ModLogger.Debug($"FuelStationManager: Added existing fuel station to tracking: {parentObject.name}");
+                            }
+                        }
+                    }
+                }
+
+                if (newStationsFound > 0)
+                {
+                    ModLogger.Info($"FuelStationManager: Found and setup {newStationsFound} new fuel stations");
+                }
+
+                // Check if we've found the expected number of stations and can stop checking
+                if (_activeFuelStations.Count >= EXPECTED_FUEL_STATIONS && !_shouldStopChecking)
+                {
+                    _shouldStopChecking = true;
+                    ModLogger.Info($"FuelStationManager: Found expected number of fuel stations ({EXPECTED_FUEL_STATIONS}), stopping periodic checks for performance");
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error checking for new fuel stations", ex);
             }
         }
 
@@ -272,6 +354,10 @@ namespace S1FuelMod.Systems
         public void ForceScan()
         {
             ModLogger.Info("FuelStationManager: Forcing fuel station scan...");
+            
+            // Temporarily re-enable checking in case fuel stations were destroyed and new ones added
+            _shouldStopChecking = false;
+            
             ScanForFuelStations();
         }
 
