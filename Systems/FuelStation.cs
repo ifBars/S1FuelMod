@@ -18,6 +18,7 @@ using Il2CppScheduleOne.Money;
 using Il2CppScheduleOne.Persistence.Datas;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Vehicles;
+using MelonLoader;
 #endif
 using UnityEngine;
 using UnityEngine.Events;
@@ -28,20 +29,23 @@ namespace S1FuelMod.Systems
     /// FuelStation component that handles vehicle refueling interactions
     /// Attaches to gameobjects named "Bowser (EMC Merge)" to make them functional fuel stations
     /// </summary>
+#if !MONO
+    [RegisterTypeInIl2Cpp]
+#endif
     public class FuelStation : InteractableObject
     {
-        [UnityEngine.Header("Fuel Station Settings")]
-        [UnityEngine.SerializeField] private float refuelRate = 10f; // liters per second
-        [UnityEngine.SerializeField] private float pricePerLiter = 1.5f;
-        [UnityEngine.SerializeField] private float maxInteractionDistance = 4f;
-        [UnityEngine.SerializeField] private float vehicleDetectionRadius = 6f;
-        [UnityEngine.SerializeField] private LayerMask vehicleLayerMask = ~0; // All layers by default
+        // Fuel Station Settings
+        private float refuelRate = 10f; // liters per second
+        private float pricePerLiter = 1.5f;
+        private float maxInteractionDistance = 4f;
+        private float vehicleDetectionRadius = 6f;
+        private LayerMask vehicleLayerMask = ~0; // All layers by default
 
-        [UnityEngine.Header("Audio")]
-        [UnityEngine.SerializeField] private AudioSource refuelAudioSource;
-        [UnityEngine.SerializeField] private AudioClip refuelStartSound;
-        [UnityEngine.SerializeField] private AudioClip refuelLoopSound;
-        [UnityEngine.SerializeField] private AudioClip refuelEndSound;
+        // Audio
+        private AudioSource refuelAudioSource;
+        private AudioClip refuelStartSound;
+        private AudioClip refuelLoopSound;
+        private AudioClip refuelEndSound;
 
         // State tracking
         private bool _isRefueling = false;
@@ -54,6 +58,13 @@ namespace S1FuelMod.Systems
         // Components
         private MoneyManager _moneyManager;
         private FuelSystemManager _fuelSystemManager;
+
+#if !MONO
+        /// <summary>
+        /// IL2CPP constructor required for RegisterTypeInIl2Cpp
+        /// </summary>
+        public FuelStation(IntPtr ptr) : base(ptr) { }
+#endif
 
         private void Start()
         {

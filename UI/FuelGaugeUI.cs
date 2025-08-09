@@ -346,11 +346,11 @@ namespace S1FuelMod.UI
                 {
                     ModLogger.UIDebug($"FuelGaugeUI: Setting up event listeners for vehicle {_fuelSystem.VehicleGUID.Substring(0, 8)}...");
                     
-                    _fuelSystem.OnFuelLevelChanged.AddListener(new UnityEngine.Events.UnityAction<float>(OnFuelLevelChanged));
-                    _fuelSystem.OnFuelPercentageChanged.AddListener(new UnityEngine.Events.UnityAction<float>(OnFuelPercentageChanged));
-                    _fuelSystem.OnLowFuelWarning.AddListener(new UnityEngine.Events.UnityAction<bool>(OnLowFuelWarning));
-                    _fuelSystem.OnCriticalFuelWarning.AddListener(new UnityEngine.Events.UnityAction<bool>(OnCriticalFuelWarning));
-                    _fuelSystem.OnFuelEmpty.AddListener(new UnityEngine.Events.UnityAction<bool>(OnFuelEmpty));
+                    _fuelSystem.OnFuelLevelChanged.AddListener(new System.Action<float>(OnFuelLevelChanged));
+                    _fuelSystem.OnFuelPercentageChanged.AddListener(new System.Action<float>(OnFuelPercentageChanged));
+                    _fuelSystem.OnLowFuelWarning.AddListener(new System.Action<bool>(OnLowFuelWarning));
+                    _fuelSystem.OnCriticalFuelWarning.AddListener(new System.Action<bool>(OnCriticalFuelWarning));
+                    _fuelSystem.OnFuelEmpty.AddListener(new System.Action<bool>(OnFuelEmpty));
                     
                     ModLogger.UIDebug($"FuelGaugeUI: Event listeners set up successfully for vehicle {_fuelSystem.VehicleGUID.Substring(0, 8)}...");
                 }
@@ -606,11 +606,11 @@ namespace S1FuelMod.UI
                 // Remove event listeners
                 if (_fuelSystem != null)
                 {
-                    _fuelSystem.OnFuelLevelChanged.RemoveListener(new UnityEngine.Events.UnityAction<float>(OnFuelLevelChanged));
-                    _fuelSystem.OnFuelPercentageChanged.RemoveListener(new UnityEngine.Events.UnityAction<float>(OnFuelPercentageChanged));
-                    _fuelSystem.OnLowFuelWarning.RemoveListener(new UnityEngine.Events.UnityAction<bool>(OnLowFuelWarning));
-                    _fuelSystem.OnCriticalFuelWarning.RemoveListener(new UnityEngine.Events.UnityAction<bool>(OnCriticalFuelWarning));
-                    _fuelSystem.OnFuelEmpty.RemoveListener(new UnityEngine.Events.UnityAction<bool>(OnFuelEmpty));
+                    _fuelSystem.OnFuelLevelChanged.RemoveListener(new System.Action<float>(OnFuelLevelChanged));
+                    _fuelSystem.OnFuelPercentageChanged.RemoveListener(new System.Action<float>(OnFuelPercentageChanged));
+                    _fuelSystem.OnLowFuelWarning.RemoveListener(new System.Action<bool>(OnLowFuelWarning));
+                    _fuelSystem.OnCriticalFuelWarning.RemoveListener(new System.Action<bool>(OnCriticalFuelWarning));
+                    _fuelSystem.OnFuelEmpty.RemoveListener(new System.Action<bool>(OnFuelEmpty));
                 }
 
                 // Destroy UI objects

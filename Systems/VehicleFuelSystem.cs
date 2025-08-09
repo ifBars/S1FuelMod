@@ -8,6 +8,7 @@ using ScheduleOne.DevUtilities;
 #else
 using Il2CppScheduleOne.Vehicles;
 using Il2CppScheduleOne.DevUtilities;
+using MelonLoader;
 #endif
 using S1FuelMod.Utils;
 using System.Runtime.CompilerServices;
@@ -17,18 +18,21 @@ namespace S1FuelMod.Systems
     /// <summary>
     /// Component that manages fuel for a single LandVehicle
     /// </summary>
+#if !MONO
+    [RegisterTypeInIl2Cpp]
+#endif
     public class VehicleFuelSystem : MonoBehaviour
     {
-        [UnityEngine.Header("Fuel Settings")]
-        [UnityEngine.SerializeField] private float currentFuelLevel = 50f;
-        [UnityEngine.SerializeField] private float maxFuelCapacity = 50f;
-        [UnityEngine.SerializeField] private float globalMaxFuelCapacity = 50f;
-        [UnityEngine.SerializeField] private float baseFuelConsumptionRate = 6f; // liters per hour at full throttle
-        [UnityEngine.SerializeField] private float idleConsumptionRate = 0.5f; // liters per hour when idling
+        // Fuel Settings
+        private float currentFuelLevel = 50f;
+        private float maxFuelCapacity = 50f;
+        private float globalMaxFuelCapacity = 50f;
+        private float baseFuelConsumptionRate = 6f; // liters per hour at full throttle
+        private float idleConsumptionRate = 0.5f; // liters per hour when idling
 
-        [UnityEngine.Header("Warning Settings")]
-        [UnityEngine.SerializeField] private float lowFuelThreshold = 30f; // percentage
-        [UnityEngine.SerializeField] private float criticalFuelThreshold = 5f; // percentage
+        // Warning Settings
+        private float lowFuelThreshold = 30f; // percentage
+        private float criticalFuelThreshold = 5f; // percentage
 
         // Component references
         private LandVehicle? _landVehicle;
@@ -63,6 +67,13 @@ namespace S1FuelMod.Systems
         /// Get the network ID for this vehicle (consistent across all clients)
         /// </summary>
         public string NetworkID => _landVehicle?.NetworkObject?.ObjectId.ToString() ?? _vehicleGUID;
+
+#if !MONO
+        /// <summary>
+        /// IL2CPP constructor required for RegisterTypeInIl2Cpp
+        /// </summary>
+        public VehicleFuelSystem(IntPtr ptr) : base(ptr) { }
+#endif
 
         private void Awake()
         {
@@ -108,9 +119,9 @@ namespace S1FuelMod.Systems
                 if (_landVehicle != null)
                 {
                     if (_landVehicle.onVehicleStart != null)
-                        _landVehicle.onVehicleStart.AddListener((UnityAction)OnVehicleStarted);
+                        _landVehicle.onVehicleStart.AddListener(new System.Action(OnVehicleStarted));
                     if (_landVehicle.onVehicleStop != null)
-                        _landVehicle.onVehicleStop.AddListener((UnityAction)OnVehicleStopped);
+                        _landVehicle.onVehicleStop.AddListener(new System.Action(OnVehicleStopped));
                 }
 
                 // Initialize time tracking
@@ -483,9 +494,9 @@ namespace S1FuelMod.Systems
                 if (_landVehicle != null)
                 {
                     if (_landVehicle.onVehicleStart != null)
-                        _landVehicle.onVehicleStart.RemoveListener((UnityAction)OnVehicleStarted);
+                        _landVehicle.onVehicleStart.RemoveListener(new System.Action(OnVehicleStarted));
                     if (_landVehicle.onVehicleStop != null)
-                        _landVehicle.onVehicleStop.RemoveListener((UnityAction)OnVehicleStopped);
+                        _landVehicle.onVehicleStop.RemoveListener(new System.Action(OnVehicleStopped));
                 }
 
                 ModLogger.FuelDebug($"VehicleFuelSystem destroyed for vehicle {_vehicleGUID.Substring(0, 8)}...");

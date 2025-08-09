@@ -224,7 +224,7 @@ namespace S1FuelMod.Integrations
                     if (vehToken is not JObject vehObj)
                         continue;
 
-                    var guid = vehObj.Value<string>("GUID");
+                    var guid = vehObj.TryGetValue("GUID", out var guidTok) ? (string)guidTok : null;
                     if (string.IsNullOrEmpty(guid))
                         continue;
 
@@ -384,7 +384,7 @@ namespace S1FuelMod.Integrations
                     if (vehToken is not JObject vehObj)
                         continue;
 
-                    string guid = vehObj.Value<string>("GUID") ?? string.Empty;
+                    string guid = vehObj.TryGetValue("GUID", out var guidTok2) ? (string)guidTok2 ?? string.Empty : string.Empty;
                     if (string.IsNullOrEmpty(guid))
                         continue;
 
@@ -392,9 +392,9 @@ namespace S1FuelMod.Integrations
                     if (!vehObj.TryGetValue("CurrentFuelLevel", out var curTok))
                         continue;
 
-                    float current = curTok.Value<float>();
-                    float max = vehObj.Value<float?>("MaxFuelCapacity") ?? _modInstance.DefaultFuelCapacity;
-                    float rate = vehObj.Value<float?>("FuelConsumptionRate") ?? Constants.Fuel.BASE_CONSUMPTION_RATE;
+                    float current = (float)curTok;
+                    float max = vehObj.TryGetValue("MaxFuelCapacity", out var maxTok) ? (float)maxTok : _modInstance.DefaultFuelCapacity;
+                    float rate = vehObj.TryGetValue("FuelConsumptionRate", out var rateTok) ? (float)rateTok : Constants.Fuel.BASE_CONSUMPTION_RATE;
 
                     // Find spawned vehicle and apply
                     LandVehicle? vehicle = FindVehicleByGuid(guid);
