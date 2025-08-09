@@ -110,6 +110,7 @@ namespace S1FuelMod.Systems
         {
             try
             {
+                if (!_landVehicle.localPlayerIsDriver)
                     return;
 
                 // Update engine running state
