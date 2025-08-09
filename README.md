@@ -1,121 +1,105 @@
 # S1FuelMod
 
-A comprehensive fuel system mod for Schedule I that adds realistic fuel consumption and refueling mechanics to land vehicles.
+A comprehensive fuel system mod for *Schedule I*, adding realistic fuel consumption, HUD integration, and persistence. Built with extensibility and configurability in mind.
 
-## Features
+---
 
-### Current Implementation (v1.0.0)
-- **Fuel System**: All vehicles now consume fuel based on throttle input and speed
-- **Fuel Gauge UI**: Real-time fuel level display when driving vehicles
-- **Engine Effects**: Vehicles stop working when out of fuel, with engine stuttering at very low fuel (engine stuttering needs improvement)
-- **Save/Load**: Fuel levels persist across game sessions
+##  Features
 
-### Planned Features
-- **Fuel Stations**: Dedicated refueling locations around the map
-- **Fuel Economy**: Different consumption rates for different vehicle types
-- **Fuel Costs**: Economic integration with the game's money system
-- **Multiplayer Sync**: Fuel levels synchronized across multiplayer sessions
+### **Implemented**
+- Fuel consumption tied to throttle input and vehicle speed  
+- HUD fuel gauge display  
+- Engine stuttering and shutdown when fuel is depleted  
+- Fuel levels persist across game sessions  
 
+### **Planned Enhancements**
+- Vehicle-specific fuel economy profiles  
+- In-game fuel costs and economic integration  
+- Multiplayer synchronization of fuel states  
 
-## Installation
+---
 
-1. Install [MelonLoader](https://melonwiki.xyz/) for Schedule I
-2. Download the latest release of S1FuelMod
-3. Place `S1FuelMod.dll` in the `Mods` folder in your Schedule I directory
-4. Launch the game
+##  Installation
 
-## Configuration
+1. Install **MelonLoader** for *Schedule I*.
+2. Download the latest **S1FuelMod.dll**.
+3. Place the DLL into the `Mods` folder within your *Schedule I* directory.
+4. Launch the game — fuel mechanics should activate for all land vehicles (Joyride Compatible).
 
-The mod uses MelonPreferences, you can find these configuration options under the "S1FuelMod" category:
+---
 
-- **EnableFuelSystem** (default: true): Enable or disable the entire fuel system
-- **FuelConsumptionMultiplier** (default: 1.0): Adjust fuel consumption rate (0.5 = half consumption, 2.0 = double consumption)
-- **DefaultFuelCapacity** (default: 50.0): Default fuel tank capacity in liters
-- **ShowFuelGauge** (default: true): Show fuel gauge UI when driving
-- **EnableDebugLogging** (default: false): Enable detailed debug logging
+##  Configuration
 
-## Technical Details
+All settings are available via the **MelonPreferences** system under the `S1FuelMod` category:
 
-### Fuel Consumption
-- Base consumption: 6L/hour at full throttle
-- Idle consumption: 0.5L/hour when engine is running
-- Consumption scales with throttle input and vehicle speed
-- High-speed driving (>50 km/h) increases consumption
+| Key                        | Default | Description                                        |
+|----------------------------|---------|----------------------------------------------------|
+| `EnableFuelSystem`         | `true`  | Toggle the fuel system on or off                   |
+| `FuelConsumptionMultiplier`| `1.0`   | Global modifier for fuel consumption (0.5 = half, 2.0 = double) |
+| `DefaultFuelCapacity`      | `50.0`  | Default fuel tank capacity (liters)                |
+| `ShowFuelGauge`            | `true`  | Enable the on‑screen fuel gauge UI                 |
+| `EnableDebugLogging`       | `false` | Toggle detailed debug logs                         |
 
-## Development Setup
+---
+
+##  Development Setup
 
 ### Prerequisites
-- Visual Studio 2019/2022 or JetBrains Rider
-- .NET Framework 4.7.2 or later
-- Schedule I game installed (both Mono and Il2cpp versions if testing both)
+- Visual Studio 2019/2022 or JetBrains Rider  
+- .NET Framework 4.7.2+  
+- A working installation of *Schedule I* (Mono and/or Il2Cpp)
 
-### (Main Branch) Project Configuration
-
-#### 1. Clone the Repository
+### Get Started
 ```bash
 git clone https://github.com/ifBars/S1FuelMod.git
 cd S1FuelMod
 ```
 
-#### 2. Configure Game Paths
-The project supports both Mono and Il2cpp builds. You need to update the game paths in `S1FuelMod.csproj`:
+### Configure Game Path
+Update the `<GamePath>` in `S1FuelMod.csproj` for your target build:
 
-**For Mono Build (Development/Testing):**
-- Find the `<PropertyGroup Condition="'$(Configuration)'=='Mono'">` section
-- Update `<GamePath>` to point to your Schedule I Mono installation:
-  ```xml
-  <GamePath>C:\Your\Path\To\Schedule I_alternate</GamePath>
-  ```
+```xml
+<PropertyGroup Condition="'$(Configuration)'=='Mono'">
+  <GamePath>C:\Path\To\ScheduleI_Mono</GamePath>
+</PropertyGroup>
 
-**For Il2cpp Build (Production):**
-- Find the `<PropertyGroup Condition="'$(Configuration)'=='Il2cpp'">` section
-- Update `<GamePath>` to point to your Schedule I Il2cpp installation:
-  ```xml
-  <GamePath>C:\Your\Path\To\Schedule I_public</GamePath>
-  ```
+<PropertyGroup Condition="'$(Configuration)'=='Il2cpp'">
+  <GamePath>C:\Path\To\ScheduleI_Il2cpp</GamePath>
+</PropertyGroup>
+```
 
-#### 3. Verify MelonLoader Installation
-Ensure MelonLoader is installed in your Schedule I directories:
-- Mono: `[GamePath]\MelonLoader\net35\`
-- Il2cpp: `[GamePath]\MelonLoader\net6\`
-
-#### 4. Build Configurations
-The project includes two build configurations:
-- **Mono**: For development and testing (faster builds)
-- **Il2cpp**: For production releases
-
-To switch between configurations:
-- In Visual Studio: Use the Configuration Manager dropdown
-- In Rider: Use the build configuration selector
-- Command line: `dotnet build --configuration Mono` or `dotnet build --configuration Il2cpp`
-
-### Building and Testing
-
-#### 1. Build the Mod
+### Build Commands
 ```bash
-# For Mono (development)
+# For development/testing (Mono build)
 dotnet build --configuration Mono
 
-# For Il2cpp (production)
+# For production release (Il2cpp build)
 dotnet build --configuration Il2cpp
 ```
 
-#### 2. Auto-Deploy (Optional)
-The project includes a post-build script that automatically:
-- Kills any running Schedule I process
-- Copies the built DLL to the Mods folder
-- Launches the game
+### Auto‑Deploy (Optional)
+By default, the build process will:
+1. Terminate any running *Schedule I* instance  
+2. Copy the DLL into the `Mods` folder  
+3. Launch the game automatically  
 
-To disable auto-deploy, comment out the `<Target Name="PostBuild">` section in the .csproj file.
+To disable, comment out or remove the `<Target Name="PostBuild">` block in the `.csproj`.
 
-#### 3. Manual Deployment
-If auto-deploy is disabled, manually copy the built DLL:
-- Mono: `bin\Mono\S1FuelMod_Mono.dll` → `[GamePath]\Mods\`
-- Il2cpp: `bin\Il2cpp\S1FuelMod_Il2cpp.dll` → `[GamePath]\Mods\`
+### Manual Deploy
+If auto-deploy is disabled:
+- **Mono build**: copy `bin\Mono\S1FuelMod_Mono.dll` to `[GamePath]\Mods\`
+- **Il2cpp build**: copy `bin\Il2cpp\S1FuelMod_Il2cpp.dll` to `[GamePath]\Mods\`
 
-### Code Style Guidelines
-- Follow C# coding conventions
-- Use meaningful variable and method names
-- Add comments for complex logic
-- Keep methods focused and concise
-- Test your changes before submitting
+---
+
+Consider working on these open or planned features:
+- **Low‑Fuel Behavior**: Improve stutter logic with a state machine
+- **Refueling Mechanics**: Portable canisters
+- **Multiplayer Sync**: Design a server-authoritative fuel replication system
+- **UI Polish**: Implement range estimates, flashing alerts, and HUD customization
+
+See `CHANGELOG.md` for version history and recent changes.
+
+---
+
+Enjoy enhanced immersion with S1FuelMod! Drive smart, refuel often — your engine (and community) will appreciate it.
