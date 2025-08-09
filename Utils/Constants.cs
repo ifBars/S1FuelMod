@@ -27,6 +27,12 @@
             public const bool ENABLE_FUEL_SYSTEM = true;
             public const float FUEL_CONSUMPTION_MULTIPLIER = 1.0f;
             public const float DEFAULT_FUEL_CAPACITY = 50f;
+            public const float SHITBOX_FUEL_CAPACITY = 12f;
+            public const float VEEPER_FUEL_CAPACITY = 16f;
+            public const float BRUISER_FUEL_CAPACITY = 14f;
+            public const float DINKLER_FUEL_CAPACITY = 16f;
+            public const float HOUNDDOG_FUEL_CAPACITY = 16f;
+            public const float CHEETAH_FUEL_CAPACITY = 12f;
             public const bool SHOW_FUEL_GAUGE = true;
             public const bool ENABLE_DEBUG_LOGGING = true; // Enable for testing
         }

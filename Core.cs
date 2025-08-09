@@ -25,6 +25,12 @@ namespace S1FuelMod
         private MelonPreferences_Entry<bool>? _enableFuelSystem;
         private MelonPreferences_Entry<float>? _fuelConsumptionMultiplier;
         private MelonPreferences_Entry<float>? _defaultFuelCapacity;
+        private MelonPreferences_Entry<float>? _shitboxFuelCapacity;
+        private MelonPreferences_Entry<float>? _veeperFuelCapacity;
+        private MelonPreferences_Entry<float>? _bruiserFuelCapacity;
+        private MelonPreferences_Entry<float>? _dinklerFuelCapacity;
+        private MelonPreferences_Entry<float>? _hounddogFuelCapacity;
+        private MelonPreferences_Entry<float>? _cheetahFuelCapacity;
         private MelonPreferences_Entry<bool>? _showFuelGauge;
         private MelonPreferences_Entry<bool>? _enableDebugLogging;
 
@@ -36,7 +42,13 @@ namespace S1FuelMod
         // Public properties for accessing preferences
         public bool EnableFuelSystem => _enableFuelSystem?.Value ?? true;
         public float FuelConsumptionMultiplier => _fuelConsumptionMultiplier?.Value ?? 1.0f;
-        public float DefaultFuelCapacity => _defaultFuelCapacity?.Value ?? 50f;
+        public float DefaultFuelCapacity => _defaultFuelCapacity?.Value ?? Constants.Defaults.DEFAULT_FUEL_CAPACITY;
+        public float ShitboxFuelCapacity => _shitboxFuelCapacity?.Value ?? Constants.Defaults.SHITBOX_FUEL_CAPACITY;
+        public float VeeperFuelCapacity => _veeperFuelCapacity?.Value ?? Constants.Defaults.VEEPER_FUEL_CAPACITY;
+        public float BruiserFuelCapacity => _bruiserFuelCapacity?.Value ?? Constants.Defaults.BRUISER_FUEL_CAPACITY;
+        public float DinklerFuelCapacity => _dinklerFuelCapacity?.Value ?? Constants.Defaults.DINKLER_FUEL_CAPACITY;
+        public float HounddogFuelCapacity => _hounddogFuelCapacity?.Value ?? Constants.Defaults.HOUNDDOG_FUEL_CAPACITY;
+        public float CheetahFuelCapacity => _cheetahFuelCapacity?.Value ?? Constants.Defaults.CHEETAH_FUEL_CAPACITY;
         public bool ShowFuelGauge => _showFuelGauge?.Value ?? true;
         public bool EnableDebugLogging => _enableDebugLogging?.Value ?? false;
 
@@ -154,6 +166,54 @@ namespace S1FuelMod
                     Constants.Defaults.DEFAULT_FUEL_CAPACITY,
                     "Default Fuel Capacity (L)",
                     "Default fuel tank capacity for vehicles in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _shitboxFuelCapacity = _preferencesCategory.CreateEntry<float>(
+                    "ShitboxFuelCapacity",
+                    Constants.Defaults.SHITBOX_FUEL_CAPACITY,
+                    "Shitbox Fuel Capacity (L)",
+                    "Fuel capacity for the Shitbox vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _veeperFuelCapacity = _preferencesCategory.CreateEntry<float>(
+                    "VeeperFuelCapacity",
+                    Constants.Defaults.VEEPER_FUEL_CAPACITY,
+                    "Veeper Fuel Capacity (L)",
+                    "Fuel capacity for the Veeper vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _bruiserFuelCapacity = _preferencesCategory.CreateEntry<float>(
+                    "BruiserFuelCapacity",
+                    Constants.Defaults.BRUISER_FUEL_CAPACITY,
+                    "Bruiser Fuel Capacity (L)",
+                    "Fuel capacity for the Bruiser vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _dinklerFuelCapacity = _preferencesCategory.CreateEntry<float>(
+                    "DinklerFuelCapacity",
+                    Constants.Defaults.DINKLER_FUEL_CAPACITY,
+                    "Dinkler Fuel Capacity (L)",
+                    "Fuel capacity for the Dinkler vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _hounddogFuelCapacity = _preferencesCategory.CreateEntry<float>(
+                    "HounddogFuelCapacity",
+                    Constants.Defaults.HOUNDDOG_FUEL_CAPACITY,
+                    "Hounddog Fuel Capacity (L)",
+                    "Fuel capacity for the Hounddog vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _cheetahFuelCapacity = _preferencesCategory.CreateEntry<float>(
+                    "CheetahFuelCapacity",
+                    Constants.Defaults.CHEETAH_FUEL_CAPACITY,
+                    "Cheetah Fuel Capacity (L)",
+                    "Fuel capacity for the Cheetah vehicle in liters",
                     validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
                 );
 

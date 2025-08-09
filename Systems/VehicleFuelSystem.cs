@@ -148,12 +148,12 @@ namespace S1FuelMod.Systems
         {
             float newMaxCapacity = _landVehicle.vehicleName switch
             {
-                "Shitbox" => 12f,
-                "Veeper" => 16f,
-                "Bruiser" => 16f,
-                "Dinkler" => 20f,
-                "Hounddog" => 20f,
-                "Cheetah" => 14f,
+                "Shitbox" => Core.Instance.ShitboxFuelCapacity,
+                "Veeper" => Core.Instance.VeeperFuelCapacity,
+                "Bruiser" => Core.Instance.BruiserFuelCapacity,
+                "Dinkler" => Core.Instance.DinklerFuelCapacity,
+                "Hounddog" => Core.Instance.HounddogFuelCapacity,
+                "Cheetah" => Core.Instance.CheetahFuelCapacity,
                 _ => 16f // Default for unknown vehicles
             };
             return newMaxCapacity;
