@@ -3,6 +3,8 @@ using ScheduleOne.Interaction;
 using ScheduleOne.Vehicles;
 using ScheduleOne.Money;
 using S1FuelMod.Utils;
+using ScheduleOne.DevUtilities;
+using ScheduleOne.GameTime;
 
 namespace S1FuelMod.Systems
 {
@@ -109,6 +111,7 @@ namespace S1FuelMod.Systems
                 var fuelSystem = _fuelSystemManager?.GetFuelSystem(nearbyVehicle);
                 if (fuelSystem != null)
                 {
+                    SetFuelPrice();
                     float fuelNeeded = fuelSystem.MaxFuelCapacity - fuelSystem.CurrentFuelLevel;
                     float estimatedCost = fuelNeeded * pricePerLiter;
 
@@ -406,6 +409,19 @@ namespace S1FuelMod.Systems
             {
                 ModLogger.Error("Error showing fuel station message", ex);
             }
+        }
+
+        /// <summary>
+        /// Sets the price per liter for refueling 
+        /// </summary>
+        private void SetFuelPrice()
+        {
+            float basePrice = Constants.Fuel.FUEL_PRICE_PER_LITER;
+            int hashCode = ("Petrol" + NetworkSingleton<TimeManager>.Instance.DayIndex.ToString()).GetHashCode();
+            float time = Mathf.Lerp(0f, 0.2f, Mathf.InverseLerp(-2.1474836E+09f, 2.1474836E+09f, (float)hashCode));
+            float finalPrice = basePrice + (basePrice * time);
+            pricePerLiter = finalPrice;
+            ModLogger.Debug($"Setting fuel price based on time: {basePrice} {time:F2} multiplier to {finalPrice:F2}");
         }
 
         /// <summary>
