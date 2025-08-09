@@ -117,7 +117,7 @@ namespace S1FuelMod.Systems
 
                     if (fuelNeeded > 0.1f) // Only show if vehicle needs fuel
                     {
-                        SetMessage($"Refuel {nearbyVehicle.VehicleName} - {MoneyManager.FormatAmount(estimatedCost)}");
+                        SetMessage($"Refuel {nearbyVehicle.VehicleName} - {MoneyManager.FormatAmount(estimatedCost)} | ${pricePerLiter:F2}/L");
                         SetInteractableState(EInteractableState.Default);
                     }
                     else

@@ -327,7 +327,7 @@ namespace S1FuelMod.UI
             {
                 ModLogger.Error("Error creating warning icon", ex);
             }
-        }
+        } 
 
         /// <summary>
         /// Setup event listeners for fuel system events
