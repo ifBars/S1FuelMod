@@ -1,11 +1,21 @@
 ﻿using HarmonyLib;
-using Newtonsoft.Json.Linq;
 using S1FuelMod.Systems;
 using S1FuelMod.Utils;
+#if MONO
+using Newtonsoft.Json.Linq;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.Persistence.Datas;
+using ScheduleOne.Persistence.Loaders;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Vehicles;
+#else
+using Il2CppNewtonsoft.Json.Linq;
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.Persistence.Datas;
+using Il2CppScheduleOne.Persistence.Loaders;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.Vehicles;
+#endif
 using UnityEngine;
 
 namespace S1FuelMod.Integrations
@@ -208,8 +218,9 @@ namespace S1FuelMod.Integrations
                     return;
 
                 bool anyFuelDataAdded = false;
-                foreach (var vehToken in vehicles)
+                for (int i = 0; i < vehicles.Count; i++)
                 {
+                    var vehToken = vehicles[i];
                     if (vehToken is not JObject vehObj)
                         continue;
 
@@ -243,7 +254,11 @@ namespace S1FuelMod.Integrations
 
                 if (anyFuelDataAdded)
                 {
+#if MONO
                     __result = root.ToString(Newtonsoft.Json.Formatting.Indented);
+#else
+                    __result = root.ToString(Il2CppNewtonsoft.Json.Formatting.Indented);
+#endif
                 }
             }
             catch (Exception ex)
@@ -343,7 +358,7 @@ namespace S1FuelMod.Integrations
         /// <summary>
         /// Patch VehiclesLoader.Load to read fuel data back from JSON and apply to spawned vehicles
         /// </summary>
-        [HarmonyPatch(typeof(ScheduleOne.Persistence.Loaders.VehiclesLoader), "Load")]
+        [HarmonyPatch(typeof(VehiclesLoader), "Load")]
         [HarmonyPostfix]
         public static void VehiclesLoader_Load_Postfix(string mainPath)
         {
@@ -363,8 +378,9 @@ namespace S1FuelMod.Integrations
                 if (vehicles == null)
                     return;
 
-                foreach (var vehToken in vehicles)
+                for (int i = 0; i < vehicles.Count; i++)
                 {
+                    var vehToken = vehicles[i];
                     if (vehToken is not JObject vehObj)
                         continue;
 

@@ -1,8 +1,14 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
+#if MONO
 using ScheduleOne.Vehicles;
 using ScheduleOne.DevUtilities;
+#else
+using Il2CppScheduleOne.Vehicles;
+using Il2CppScheduleOne.DevUtilities;
+#endif
 using S1FuelMod.Utils;
 using System.Runtime.CompilerServices;
 
@@ -13,16 +19,16 @@ namespace S1FuelMod.Systems
     /// </summary>
     public class VehicleFuelSystem : MonoBehaviour
     {
-        [Header("Fuel Settings")]
-        [SerializeField] private float currentFuelLevel = 50f;
-        [SerializeField] private float maxFuelCapacity = 50f;
-        [SerializeField] private float globalMaxFuelCapacity = 50f;
-        [SerializeField] private float baseFuelConsumptionRate = 6f; // liters per hour at full throttle
-        [SerializeField] private float idleConsumptionRate = 0.5f; // liters per hour when idling
+        [UnityEngine.Header("Fuel Settings")]
+        [UnityEngine.SerializeField] private float currentFuelLevel = 50f;
+        [UnityEngine.SerializeField] private float maxFuelCapacity = 50f;
+        [UnityEngine.SerializeField] private float globalMaxFuelCapacity = 50f;
+        [UnityEngine.SerializeField] private float baseFuelConsumptionRate = 6f; // liters per hour at full throttle
+        [UnityEngine.SerializeField] private float idleConsumptionRate = 0.5f; // liters per hour when idling
 
-        [Header("Warning Settings")]
-        [SerializeField] private float lowFuelThreshold = 30f; // percentage
-        [SerializeField] private float criticalFuelThreshold = 5f; // percentage
+        [UnityEngine.Header("Warning Settings")]
+        [UnityEngine.SerializeField] private float lowFuelThreshold = 30f; // percentage
+        [UnityEngine.SerializeField] private float criticalFuelThreshold = 5f; // percentage
 
         // Component references
         private LandVehicle? _landVehicle;
@@ -101,8 +107,10 @@ namespace S1FuelMod.Systems
                 // Subscribe to vehicle events if available
                 if (_landVehicle != null)
                 {
-                    _landVehicle.onVehicleStart?.AddListener(OnVehicleStarted);
-                    _landVehicle.onVehicleStop?.AddListener(OnVehicleStopped);
+                    if (_landVehicle.onVehicleStart != null)
+                        _landVehicle.onVehicleStart.AddListener((UnityAction)OnVehicleStarted);
+                    if (_landVehicle.onVehicleStop != null)
+                        _landVehicle.onVehicleStop.AddListener((UnityAction)OnVehicleStopped);
                 }
 
                 // Initialize time tracking
@@ -474,8 +482,10 @@ namespace S1FuelMod.Systems
                 // Unsubscribe from events
                 if (_landVehicle != null)
                 {
-                    _landVehicle.onVehicleStart?.RemoveListener(OnVehicleStarted);
-                    _landVehicle.onVehicleStop?.RemoveListener(OnVehicleStopped);
+                    if (_landVehicle.onVehicleStart != null)
+                        _landVehicle.onVehicleStart.RemoveListener((UnityAction)OnVehicleStarted);
+                    if (_landVehicle.onVehicleStop != null)
+                        _landVehicle.onVehicleStop.RemoveListener((UnityAction)OnVehicleStopped);
                 }
 
                 ModLogger.FuelDebug($"VehicleFuelSystem destroyed for vehicle {_vehicleGUID.Substring(0, 8)}...");

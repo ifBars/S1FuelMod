@@ -1,8 +1,14 @@
 ﻿using UnityEngine.SceneManagement;
+#if MONO
 using ScheduleOne.Vehicles;
 using ScheduleOne.PlayerScripts;
+#else
+using Il2CppScheduleOne.Vehicles;
+using Il2CppScheduleOne.PlayerScripts;
+#endif
 using S1FuelMod.Utils;
 using S1FuelMod.Systems;
+using UnityEngine.Events;
 
 namespace S1FuelMod.UI
 {
@@ -22,8 +28,8 @@ namespace S1FuelMod.UI
             ModLogger.UIDebug("FuelUIManager: Initializing...");
 
             // Subscribe to scene change events
-            SceneManager.sceneLoaded += OnSceneLoaded;
-            SceneManager.sceneUnloaded += OnSceneUnloaded;
+            SceneManager.sceneLoaded += (UnityAction<Scene, LoadSceneMode>)OnSceneLoaded;
+            SceneManager.sceneUnloaded += (UnityAction<Scene>)OnSceneUnloaded;
 
             // Find local player
             FindLocalPlayer();
@@ -241,7 +247,7 @@ namespace S1FuelMod.UI
                 if (!_activeFuelGauges.ContainsKey(vehicleGUID))
                 {
                     // Get fuel system for this vehicle
-                    VehicleFuelSystem? fuelSystem = Core.Instance?.GetFuelSystemManager()?.GetFuelSystem(vehicle);
+                    VehicleFuelSystem? fuelSystem = Core.Instance?.GetFuelSystemManager()?.GetFuelSystem(vehicle.GUID.ToString());
                     if (fuelSystem == null)
                     {
                         ModLogger.Warning($"FuelUIManager: No fuel system found for vehicle {vehicleGUID.Substring(0, 8)}...");
@@ -402,8 +408,8 @@ namespace S1FuelMod.UI
                 ModLogger.Info("FuelUIManager: Disposing...");
 
                 // Unsubscribe from scene events
-                SceneManager.sceneLoaded -= OnSceneLoaded;
-                SceneManager.sceneUnloaded -= OnSceneUnloaded;
+                SceneManager.sceneLoaded -= (UnityAction<Scene, LoadSceneMode>)OnSceneLoaded;
+                SceneManager.sceneUnloaded -= (UnityAction<Scene>)OnSceneUnloaded;
 
                 // Dispose of all gauges
                 foreach (var gauge in _activeFuelGauges.Values)

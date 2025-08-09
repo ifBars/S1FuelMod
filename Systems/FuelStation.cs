@@ -1,4 +1,6 @@
-﻿using S1FuelMod.Utils;
+﻿using System;
+using S1FuelMod.Utils;
+#if MONO
 using ScheduleOne.DevUtilities;
 using ScheduleOne.GameTime;
 using ScheduleOne.Interaction;
@@ -7,7 +9,18 @@ using ScheduleOne.Money;
 using ScheduleOne.Persistence.Datas;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Vehicles;
+#else
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.GameTime;
+using Il2CppScheduleOne.Interaction;
+using Il2CppScheduleOne.Levelling;
+using Il2CppScheduleOne.Money;
+using Il2CppScheduleOne.Persistence.Datas;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.Vehicles;
+#endif
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace S1FuelMod.Systems
 {
@@ -17,18 +30,18 @@ namespace S1FuelMod.Systems
     /// </summary>
     public class FuelStation : InteractableObject
     {
-        [Header("Fuel Station Settings")]
-        [SerializeField] private float refuelRate = 10f; // liters per second
-        [SerializeField] private float pricePerLiter = 1.5f;
-        [SerializeField] private float maxInteractionDistance = 4f;
-        [SerializeField] private float vehicleDetectionRadius = 6f;
-        [SerializeField] private LayerMask vehicleLayerMask = ~0; // All layers by default
+        [UnityEngine.Header("Fuel Station Settings")]
+        [UnityEngine.SerializeField] private float refuelRate = 10f; // liters per second
+        [UnityEngine.SerializeField] private float pricePerLiter = 1.5f;
+        [UnityEngine.SerializeField] private float maxInteractionDistance = 4f;
+        [UnityEngine.SerializeField] private float vehicleDetectionRadius = 6f;
+        [UnityEngine.SerializeField] private LayerMask vehicleLayerMask = ~0; // All layers by default
 
-        [Header("Audio")]
-        [SerializeField] private AudioSource refuelAudioSource;
-        [SerializeField] private AudioClip refuelStartSound;
-        [SerializeField] private AudioClip refuelLoopSound;
-        [SerializeField] private AudioClip refuelEndSound;
+        [UnityEngine.Header("Audio")]
+        [UnityEngine.SerializeField] private AudioSource refuelAudioSource;
+        [UnityEngine.SerializeField] private AudioClip refuelStartSound;
+        [UnityEngine.SerializeField] private AudioClip refuelLoopSound;
+        [UnityEngine.SerializeField] private AudioClip refuelEndSound;
 
         // State tracking
         private bool _isRefueling = false;
@@ -111,7 +124,7 @@ namespace S1FuelMod.Systems
 
             if (nearbyVehicle != null)
             {
-                var fuelSystem = _fuelSystemManager?.GetFuelSystem(nearbyVehicle);
+                var fuelSystem = _fuelSystemManager?.GetFuelSystem(nearbyVehicle.GUID.ToString());
                 if (fuelSystem != null)
                 {
                     SetFuelPrice();
@@ -161,7 +174,7 @@ namespace S1FuelMod.Systems
                 }
 
                 // Get fuel system
-                _targetFuelSystem = _fuelSystemManager?.GetFuelSystem(_targetVehicle);
+                _targetFuelSystem = _fuelSystemManager?.GetFuelSystem(_targetVehicle.GUID.ToString());
                 if (_targetFuelSystem == null)
                 {
                     ShowMessage("Vehicle has no fuel system!", MessageType.Error);

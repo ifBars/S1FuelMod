@@ -1,6 +1,11 @@
 ﻿using System;
+#if MONO
 using ScheduleOne.Persistence.Datas;
 using ScheduleOne.Vehicles.Modification;
+#else
+using Il2CppScheduleOne.Persistence.Datas;
+using Il2CppScheduleOne.Vehicles.Modification;
+#endif
 using UnityEngine;
 
 namespace S1FuelMod.Systems
@@ -23,8 +28,13 @@ namespace S1FuelMod.Systems
         /// <summary>
         /// Constructor that matches the original VehicleData constructor and adds fuel data
         /// </summary>
+        #if !MONO
+        public FuelVehicleData(Il2CppSystem.Guid guid, string code, Vector3 pos, Quaternion rot, EVehicleColor col, ItemSet vehicleContents, FuelData fuelData)
+            : base(guid, code, pos, rot, col, vehicleContents)
+#else
         public FuelVehicleData(Guid guid, string code, Vector3 pos, Quaternion rot, EVehicleColor col, ItemSet vehicleContents, FuelData fuelData)
             : base(guid, code, pos, rot, col, vehicleContents)
+#endif
         {
             if (fuelData != null)
             {
@@ -80,7 +90,7 @@ namespace S1FuelMod.Systems
         public static FuelVehicleData FromVehicleData(VehicleData vehicleData, FuelData fuelData)
         {
             return new FuelVehicleData(
-                new Guid(vehicleData.GUID),
+                new Il2CppSystem.Guid(vehicleData.GUID),
                 vehicleData.VehicleCode,
                 vehicleData.Position,
                 vehicleData.Rotation,
