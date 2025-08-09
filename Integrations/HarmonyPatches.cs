@@ -1,8 +1,11 @@
 ﻿using HarmonyLib;
-using ScheduleOne.Vehicles;
-using ScheduleOne.PlayerScripts;
-using S1FuelMod.Utils;
+using Newtonsoft.Json.Linq;
 using S1FuelMod.Systems;
+using S1FuelMod.Utils;
+using ScheduleOne.DevUtilities;
+using ScheduleOne.Persistence.Datas;
+using ScheduleOne.PlayerScripts;
+using ScheduleOne.Vehicles;
 using UnityEngine;
 
 namespace S1FuelMod.Integrations
@@ -45,7 +48,7 @@ namespace S1FuelMod.Integrations
                     // Try to add fuel system if it doesn't exist
                     var fuelManager = _modInstance.GetFuelSystemManager();
                     fuelSystem = fuelManager?.AddFuelSystemToVehicle(__instance);
-                    
+
                     if (fuelSystem == null)
                     {
                         return true; // Continue with original method if we can't add fuel system
@@ -57,20 +60,20 @@ namespace S1FuelMod.Integrations
                 {
                     // Prevent engine from running when out of fuel
                     ModLogger.FuelDebug($"Vehicle {fuelSystem.VehicleGUID.Substring(0, 8)}... engine disabled - out of fuel");
-                    
+
                     // Zero out the throttle input
                     __instance.currentThrottle = 0f;
-                    
+
                     // Apply engine braking/coasting behavior
                     ApplyCoastingBehavior(__instance);
-                    
+
                     return false; // Skip original method
                 }
 
                 // Allow normal operation if fuel is available
                 return true; // Continue with original method
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 ModLogger.Error("Error in LandVehicle.ApplyThrottle prefix", ex);
                 return true; // Continue with original method on error
@@ -102,7 +105,7 @@ namespace S1FuelMod.Integrations
                     }
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 ModLogger.Error("Error applying coasting behavior", ex);
             }
@@ -126,7 +129,7 @@ namespace S1FuelMod.Integrations
 
                 ModLogger.FuelDebug($"Added fuel system to newly spawned vehicle: {__result.VehicleName}");
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 ModLogger.Error("Error in VehicleManager.SpawnAndReturnVehicle postfix", ex);
             }
@@ -149,11 +152,11 @@ namespace S1FuelMod.Integrations
                     return;
 
                 ModLogger.UIDebug($"Player entered vehicle: {vehicle.VehicleName}");
-                
+
                 // UI manager will handle showing the gauge in its Update method
                 // through vehicle change detection
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 ModLogger.Error("Error in Player.EnterVehicle postfix", ex);
             }
@@ -176,43 +179,117 @@ namespace S1FuelMod.Integrations
                     return;
 
                 ModLogger.UIDebug("Player exited vehicle");
-                
+
                 // UI manager will handle hiding the gauge in its Update method
                 // through vehicle change detection
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 ModLogger.Error("Error in Player.ExitVehicle postfix", ex);
             }
         }
 
         /// <summary>
-        /// Patch LandVehicle.GetVehicleData to include fuel data in saves
+        /// Patch VehicleManager.GetSaveString to inject fuel data into the JSON after serialization
+        /// Uses JObject so extra fields persist even though Unity's JsonUtility doesn't support polymorphism
         /// </summary>
-        [HarmonyPatch(typeof(LandVehicle), "GetVehicleData")]
+        [HarmonyPatch(typeof(VehicleManager), "GetSaveString")]
         [HarmonyPostfix]
-        public static void LandVehicle_GetVehicleData_Postfix(LandVehicle __instance, ref ScheduleOne.Persistence.Datas.VehicleData __result)
+        public static void VehicleManager_GetSaveString_Postfix(VehicleManager __instance, ref string __result)
         {
             try
             {
-                if (_modInstance?.EnableFuelSystem != true || __instance == null)
+                if (_modInstance?.EnableFuelSystem != true || __instance == null || string.IsNullOrEmpty(__result))
                     return;
 
-                // Get fuel system for this vehicle
-                VehicleFuelSystem? fuelSystem = __instance.GetComponent<VehicleFuelSystem>();
-                if (fuelSystem == null)
+                var root = JObject.Parse(__result);
+                var vehicles = root["Vehicles"] as JArray;
+                if (vehicles == null)
                     return;
 
-                // Store fuel data in a way that doesn't break existing save system
-                // We'll use a separate save mechanism for fuel data
-                ModLogger.FuelDebug($"Saving fuel data for vehicle {__instance.GUID.ToString().Substring(0, 8)}...");
-                
-                // TODO: Implement fuel data saving through generic saveable system
-                // This will be implemented when we add the persistence integration
+                bool anyFuelDataAdded = false;
+                foreach (var vehToken in vehicles)
+                {
+                    if (vehToken is not JObject vehObj)
+                        continue;
+
+                    var guid = vehObj.Value<string>("GUID");
+                    if (string.IsNullOrEmpty(guid))
+                        continue;
+
+                    LandVehicle? vehicle = FindVehicleByGuid(guid);
+                    if (vehicle == null)
+                        continue;
+
+                    var fuelSystem = vehicle.GetComponent<VehicleFuelSystem>();
+                    FuelData fuelData = fuelSystem?.GetFuelData() ?? new FuelData
+                    {
+                        CurrentFuelLevel = _modInstance.DefaultFuelCapacity * 0.75f,
+                        MaxFuelCapacity = _modInstance.DefaultFuelCapacity,
+                        FuelConsumptionRate = Constants.Fuel.BASE_CONSUMPTION_RATE
+                    };
+
+                    // Stamp type for readability
+                    vehObj["DataType"] = "FuelVehicleData";
+                    // Inject fields
+                    vehObj["CurrentFuelLevel"] = fuelData.CurrentFuelLevel;
+                    vehObj["MaxFuelCapacity"] = fuelData.MaxFuelCapacity;
+                    vehObj["FuelConsumptionRate"] = fuelData.FuelConsumptionRate;
+                    vehObj["FuelDataVersion"] = 1;
+                    anyFuelDataAdded = true;
+
+                    ModLogger.FuelDebug($"GetSaveString: Injected fuel data for vehicle {guid.Substring(0, 8)}... - {fuelData.CurrentFuelLevel:F1}L/{fuelData.MaxFuelCapacity:F1}L");
+                }
+
+                if (anyFuelDataAdded)
+                {
+                    __result = root.ToString(Newtonsoft.Json.Formatting.Indented);
+                }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                ModLogger.Error("Error in LandVehicle.GetVehicleData postfix", ex);
+                ModLogger.Error("Error in VehicleManager.GetSaveString postfix", ex);
+            }
+        }
+
+        /// <summary>
+        /// Helper method to find a vehicle by GUID
+        /// </summary>
+        private static LandVehicle? FindVehicleByGuid(string guid)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(guid)) return null;
+
+                // Check VehicleManager if available
+                if (NetworkSingleton<VehicleManager>.InstanceExists)
+                {
+                    var vehicleManager = NetworkSingleton<VehicleManager>.Instance;
+                    foreach (LandVehicle vehicle in vehicleManager.AllVehicles)
+                    {
+                        if (vehicle != null && vehicle.GUID.ToString() == guid)
+                        {
+                            return vehicle;
+                        }
+                    }
+                }
+
+                // Fallback: search all LandVehicle objects in scene
+                LandVehicle[] allVehicles = UnityEngine.Object.FindObjectsOfType<LandVehicle>();
+                foreach (LandVehicle vehicle in allVehicles)
+                {
+                    if (vehicle != null && vehicle.GUID.ToString() == guid)
+                    {
+                        return vehicle;
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error($"Error finding vehicle by GUID {guid}", ex);
+                return null;
             }
         }
 
@@ -221,7 +298,7 @@ namespace S1FuelMod.Integrations
         /// </summary>
         [HarmonyPatch(typeof(LandVehicle), "Load")]
         [HarmonyPostfix]
-        public static void LandVehicle_Load_Postfix(LandVehicle __instance, ScheduleOne.Persistence.Datas.VehicleData data, string containerPath)
+        public static void LandVehicle_Load_Postfix(LandVehicle __instance, VehicleData data, string containerPath)
         {
             try
             {
@@ -231,27 +308,99 @@ namespace S1FuelMod.Integrations
                 // Ensure vehicle has fuel system
                 var fuelManager = _modInstance.GetFuelSystemManager();
                 VehicleFuelSystem? fuelSystem = fuelManager?.AddFuelSystemToVehicle(__instance);
-                
+
                 if (fuelSystem == null)
                     return;
 
                 ModLogger.FuelDebug($"Loading fuel data for vehicle {__instance.GUID.ToString().Substring(0, 8)}...");
-                
-                // TODO: Implement fuel data loading through generic saveable system
-                // For now, vehicles will start with default fuel levels
-                
-                // Set default fuel level for newly loaded vehicles if no save data exists
-                if (fuelSystem.CurrentFuelLevel == fuelSystem.MaxFuelCapacity)
+
+                // Check if the vehicle data contains fuel information
+                FuelData? fuelData = FuelVehicleData.TryGetFuelData(data);
+
+                if (fuelData != null)
                 {
-                    // This is likely a newly loaded vehicle, so set a realistic fuel level
-                    float randomFuelLevel = UnityEngine.Random.Range(0.2f, 1.0f) * fuelSystem.MaxFuelCapacity;
-                    fuelSystem.SetFuelLevel(randomFuelLevel);
-                    ModLogger.FuelDebug($"Set random fuel level for loaded vehicle: {randomFuelLevel:F1}L");
+                    // Apply loaded fuel data
+                    fuelSystem.LoadFuelData(fuelData);
+                    ModLogger.FuelDebug($"Applied saved fuel data: {fuelData.CurrentFuelLevel:F1}L/{fuelData.MaxFuelCapacity:F1}L");
+                }
+                else
+                {
+                    // No saved fuel data found - set a realistic default level for vehicles saved before the mod
+                    if (fuelSystem.CurrentFuelLevel == fuelSystem.MaxFuelCapacity)
+                    {
+                        float randomFuelLevel = UnityEngine.Random.Range(0.2f, 1.0f) * fuelSystem.MaxFuelCapacity;
+                        fuelSystem.SetFuelLevel(randomFuelLevel);
+                        ModLogger.FuelDebug($"No saved fuel data - set random fuel level: {randomFuelLevel:F1}L");
+                    }
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 ModLogger.Error("Error in LandVehicle.Load postfix", ex);
+            }
+        }
+
+        /// <summary>
+        /// Patch VehiclesLoader.Load to read fuel data back from JSON and apply to spawned vehicles
+        /// </summary>
+        [HarmonyPatch(typeof(ScheduleOne.Persistence.Loaders.VehiclesLoader), "Load")]
+        [HarmonyPostfix]
+        public static void VehiclesLoader_Load_Postfix(string mainPath)
+        {
+            try
+            {
+                if (_modInstance?.EnableFuelSystem != true)
+                    return;
+
+                // Determine actual file path (Loader.TryLoadFile appends .json by default)
+                string jsonPath = File.Exists(mainPath) ? mainPath : mainPath + ".json";
+                if (!File.Exists(jsonPath))
+                    return;
+
+                string contents = File.ReadAllText(jsonPath);
+                var root = JObject.Parse(contents);
+                var vehicles = root["Vehicles"] as JArray;
+                if (vehicles == null)
+                    return;
+
+                foreach (var vehToken in vehicles)
+                {
+                    if (vehToken is not JObject vehObj)
+                        continue;
+
+                    string guid = vehObj.Value<string>("GUID") ?? string.Empty;
+                    if (string.IsNullOrEmpty(guid))
+                        continue;
+
+                    // Read fuel fields if present
+                    if (!vehObj.TryGetValue("CurrentFuelLevel", out var curTok))
+                        continue;
+
+                    float current = curTok.Value<float>();
+                    float max = vehObj.Value<float?>("MaxFuelCapacity") ?? _modInstance.DefaultFuelCapacity;
+                    float rate = vehObj.Value<float?>("FuelConsumptionRate") ?? Constants.Fuel.BASE_CONSUMPTION_RATE;
+
+                    // Find spawned vehicle and apply
+                    LandVehicle? vehicle = FindVehicleByGuid(guid);
+                    if (vehicle == null)
+                        continue;
+
+                    var fuelManager = _modInstance.GetFuelSystemManager();
+                    var fuelSystem = fuelManager?.AddFuelSystemToVehicle(vehicle);
+                    if (fuelSystem == null)
+                        continue;
+
+                    fuelSystem.SetMaxCapacity(max);
+                    fuelSystem.SetFuelLevel(current);
+                    // Update base consumption (if you want this persisted)
+                    // We don't have setter, but LoadFuelData covers it if needed
+
+                    ModLogger.FuelDebug($"VehiclesLoader: Applied saved fuel to {guid.Substring(0, 8)}... {current:F1}/{max:F1}L");
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error in VehiclesLoader.Load postfix", ex);
             }
         }
 
@@ -275,7 +424,7 @@ namespace S1FuelMod.Integrations
                 // Apply performance effects based on fuel level
                 ApplyFuelPerformanceEffects(__instance, fuelSystem);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 ModLogger.Error("Error in LandVehicle.Update postfix", ex);
             }
@@ -289,7 +438,7 @@ namespace S1FuelMod.Integrations
             try
             {
                 // Engine stuttering when fuel is very low
-                if (fuelSystem.CurrentFuelLevel <= Constants.Fuel.ENGINE_SPUTTER_FUEL_LEVEL && 
+                if (fuelSystem.CurrentFuelLevel <= Constants.Fuel.ENGINE_SPUTTER_FUEL_LEVEL &&
                     fuelSystem.CurrentFuelLevel > Constants.Fuel.ENGINE_CUTOFF_FUEL_LEVEL)
                 {
                     // Randomly reduce throttle input to simulate engine stuttering
@@ -301,14 +450,16 @@ namespace S1FuelMod.Integrations
                 }
 
                 // TODO: Add other performance effects like:
-                // - Reduced acceleration when fuel is low
-                // - Engine sound changes
-                // - Particle effects for exhaust
+                // - Reduced acceleration when fuel is low?
+                // - Engine sound changes?
+                // - Particle effects for exhaust?
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 ModLogger.Error("Error applying fuel performance effects", ex);
             }
         }
+
+
     }
 }
