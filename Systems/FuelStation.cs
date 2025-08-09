@@ -353,6 +353,10 @@ namespace S1FuelMod.Systems
                 // Return the closest owned vehicle
                 if (nearbyVehicles.Count > 0)
                 {
+                    if (Vector3.Distance(transform.position, nearbyVehicles[0].transform.position) > maxInteractionDistance)
+                    {
+                        return null;
+                    }
                     return nearbyVehicles.OrderBy(v => Vector3.Distance(transform.position, v.transform.position)).First();
                 }
 
