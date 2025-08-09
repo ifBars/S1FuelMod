@@ -438,7 +438,6 @@ namespace S1FuelMod.Systems
                 {
                     StopRefueling();
                 }
-                Core.Instance?.GetFuelUIManager()?.HideFuelGaugeForVehicle(_targetVehicle.GUID.ToString());
 
                 ModLogger.Debug("FuelStation destroyed");
             }
