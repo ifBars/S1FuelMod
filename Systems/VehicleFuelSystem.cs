@@ -4,6 +4,7 @@ using UnityEngine.Events;
 using ScheduleOne.Vehicles;
 using ScheduleOne.DevUtilities;
 using S1FuelMod.Utils;
+using System.Runtime.CompilerServices;
 
 namespace S1FuelMod.Systems
 {
@@ -15,6 +16,7 @@ namespace S1FuelMod.Systems
         [Header("Fuel Settings")]
         [SerializeField] private float currentFuelLevel = 50f;
         [SerializeField] private float maxFuelCapacity = 50f;
+        [SerializeField] private float globalMaxFuelCapacity = 50f;
         [SerializeField] private float baseFuelConsumptionRate = 6f; // liters per hour at full throttle
         [SerializeField] private float idleConsumptionRate = 0.5f; // liters per hour when idling
 
@@ -42,6 +44,7 @@ namespace S1FuelMod.Systems
         // Public properties
         public float CurrentFuelLevel => currentFuelLevel;
         public float MaxFuelCapacity => maxFuelCapacity;
+        public float GlobalMaxFuelCapacity => globalMaxFuelCapacity;
         public float FuelPercentage => maxFuelCapacity > 0 ? (currentFuelLevel / maxFuelCapacity) * 100f : 0f;
         public bool IsOutOfFuel => currentFuelLevel <= Constants.Fuel.ENGINE_CUTOFF_FUEL_LEVEL;
         public bool IsLowFuel => FuelPercentage <= lowFuelThreshold;
@@ -68,7 +71,8 @@ namespace S1FuelMod.Systems
                 // Initialize with mod preferences
                 if (Core.Instance != null)
                 {
-                    maxFuelCapacity = Core.Instance.DefaultFuelCapacity;
+                    globalMaxFuelCapacity = Core.Instance.DefaultFuelCapacity;
+                    maxFuelCapacity = SetMaxFuelCapacity();
                     currentFuelLevel = maxFuelCapacity; // Start with full tank for testing
                     baseFuelConsumptionRate = Constants.Fuel.BASE_CONSUMPTION_RATE * Core.Instance.FuelConsumptionMultiplier;
                     idleConsumptionRate = Constants.Fuel.IDLE_CONSUMPTION_RATE * Core.Instance.FuelConsumptionMultiplier;
@@ -135,6 +139,24 @@ namespace S1FuelMod.Systems
             {
                 ModLogger.Error("Error in VehicleFuelSystem.Update", ex);
             }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private float SetMaxFuelCapacity()
+        {
+            float newMaxCapacity = _landVehicle.vehicleName switch
+            {
+                "Shitbox" => 12f,
+                "Veeper" => 16f,
+                "Bruiser" => 16f,
+                "Dinkler" => 20f,
+                "Hounddog" => 20f,
+                "Cheetah" => 14f,
+                _ => 16f // Default for unknown vehicles
+            };
+            return newMaxCapacity;
         }
 
         /// <summary>
