@@ -421,6 +421,12 @@ namespace S1FuelMod.Systems
         {
             float basePrice = Constants.Fuel.FUEL_PRICE_PER_LITER;
 
+            if (Core.Instance?.EnableDynamicPricing != true)
+            {
+                pricePerLiter = basePrice;
+                return;
+            }
+
             // Use a hash based on the day index to create a dynamic price
             int hashCode = ("Petrol" + NetworkSingleton<TimeManager>.Instance.DayIndex.ToString()).GetHashCode();
             float time = Mathf.Lerp(0f, 0.2f, Mathf.InverseLerp(-2.1474836E+09f, 2.1474836E+09f, (float)hashCode));
@@ -442,7 +448,12 @@ namespace S1FuelMod.Systems
                 _ => 1f // Higher tiers
             };
 
-        float finalPrice = (basePrice + (basePrice * time) * tierMultiplier);
+            // Calculate final price based on time and tier multiplier
+            float finalPrice = ((Core.Instance.EnablePricingOnTier)
+                ? basePrice + (basePrice * time) * tierMultiplier
+                : basePrice);
+
+            //float finalPrice = (basePrice + (basePrice * time) * tierMultiplier);
             pricePerLiter = finalPrice;
             ModLogger.Debug($"Setting fuel price based on time: {basePrice} {time:F2} and {tierMultiplier} multiplier to {finalPrice:F2}");
         }

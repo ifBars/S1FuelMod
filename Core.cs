@@ -32,6 +32,8 @@ namespace S1FuelMod
         private MelonPreferences_Entry<float>? _hounddogFuelCapacity;
         private MelonPreferences_Entry<float>? _cheetahFuelCapacity;
         private MelonPreferences_Entry<bool>? _showFuelGauge;
+        private MelonPreferences_Entry<bool>? _enableDynamicPricing;
+        private MelonPreferences_Entry<bool>? _enablePricingOnTier;
         private MelonPreferences_Entry<bool>? _enableDebugLogging;
 
         // Mod Systems
@@ -50,6 +52,8 @@ namespace S1FuelMod
         public float HounddogFuelCapacity => _hounddogFuelCapacity?.Value ?? Constants.Defaults.HOUNDDOG_FUEL_CAPACITY;
         public float CheetahFuelCapacity => _cheetahFuelCapacity?.Value ?? Constants.Defaults.CHEETAH_FUEL_CAPACITY;
         public bool ShowFuelGauge => _showFuelGauge?.Value ?? true;
+        public bool EnableDynamicPricing => _enableDynamicPricing?.Value ?? true;
+        public bool EnablePricingOnTier => _enablePricingOnTier?.Value ?? true;
         public bool EnableDebugLogging => _enableDebugLogging?.Value ?? false;
 
         /// <summary>
@@ -223,6 +227,20 @@ namespace S1FuelMod
                     Constants.Defaults.SHOW_FUEL_GAUGE,
                     "Show Fuel Gauge",
                     "If enabled, shows fuel gauge UI when driving vehicles"
+                );
+
+                _enableDynamicPricing = _preferencesCategory.CreateEntry<bool>(
+                    "EnableDynamicPricing",
+                    true,
+                    "Enable Dynamic Pricing",
+                    "If enabled, fuel prices will vary based on which day it is"
+                );
+
+                _enablePricingOnTier = _preferencesCategory.CreateEntry<bool>(
+                    "EnablePricingOnTier",
+                    true,
+                    "Enable Pricing on Tier",
+                    "If enabled, fuel prices will be inflated based on the player's current tier"
                 );
 
                 // Debug settings
