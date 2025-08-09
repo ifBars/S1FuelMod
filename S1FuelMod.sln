@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36401.2 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "S1FuelMod", "S1FuelMod.csproj", "{B0D678A7-D095-46D1-80FA-94BF7CC312F0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug IL2CPP|Any CPU = Debug IL2CPP|Any CPU
+		Debug Mono|Any CPU = Debug Mono|Any CPU
+		Release IL2CPP|Any CPU = Release IL2CPP|Any CPU
+		Release Mono|Any CPU = Release Mono|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B0D678A7-D095-46D1-80FA-94BF7CC312F0}.Debug IL2CPP|Any CPU.ActiveCfg = Debug IL2CPP|Any CPU
+		{B0D678A7-D095-46D1-80FA-94BF7CC312F0}.Debug IL2CPP|Any CPU.Build.0 = Debug IL2CPP|Any CPU
+		{B0D678A7-D095-46D1-80FA-94BF7CC312F0}.Debug Mono|Any CPU.ActiveCfg = Debug Mono|Any CPU
+		{B0D678A7-D095-46D1-80FA-94BF7CC312F0}.Debug Mono|Any CPU.Build.0 = Debug Mono|Any CPU
+		{B0D678A7-D095-46D1-80FA-94BF7CC312F0}.Release IL2CPP|Any CPU.ActiveCfg = Release IL2CPP|Any CPU
+		{B0D678A7-D095-46D1-80FA-94BF7CC312F0}.Release IL2CPP|Any CPU.Build.0 = Release IL2CPP|Any CPU
+		{B0D678A7-D095-46D1-80FA-94BF7CC312F0}.Release Mono|Any CPU.ActiveCfg = Release Mono|Any CPU
+		{B0D678A7-D095-46D1-80FA-94BF7CC312F0}.Release Mono|Any CPU.Build.0 = Release Mono|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9DC20532-5BAE-4E61-B880-510DC895844A}
+	EndGlobalSection
+EndGlobal
