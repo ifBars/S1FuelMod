@@ -26,7 +26,7 @@
         {
             public const bool ENABLE_FUEL_SYSTEM = true;
             public const float FUEL_CONSUMPTION_MULTIPLIER = 1.0f;
-            public const float DEFAULT_FUEL_CAPACITY = 50f;
+            public const float DEFAULT_FUEL_CAPACITY = 18f;
             public const float SHITBOX_FUEL_CAPACITY = 12f;
             public const float VEEPER_FUEL_CAPACITY = 16f;
             public const float BRUISER_FUEL_CAPACITY = 14f;
