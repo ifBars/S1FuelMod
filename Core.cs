@@ -422,13 +422,13 @@ namespace S1FuelMod
                 var localPlayer = ScheduleOne.PlayerScripts.Player.Local;
                 if (localPlayer == null)
                 {
-                    ModLogger.Info("No local player found");
+                    ModLogger.Debug("No local player found");
                     return;
                 }
 
                 if (localPlayer.CurrentVehicle == null)
                 {
-                    ModLogger.Info("Player is not in a vehicle");
+                    ModLogger.Debug("Player is not in a vehicle");
                     return;
                 }
 
