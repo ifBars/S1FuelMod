@@ -1,10 +1,13 @@
-﻿using UnityEngine;
-using ScheduleOne.Interaction;
-using ScheduleOne.Vehicles;
-using ScheduleOne.Money;
-using S1FuelMod.Utils;
+﻿using S1FuelMod.Utils;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.GameTime;
+using ScheduleOne.Interaction;
+using ScheduleOne.Levelling;
+using ScheduleOne.Money;
+using ScheduleOne.Persistence.Datas;
+using ScheduleOne.PlayerScripts;
+using ScheduleOne.Vehicles;
+using UnityEngine;
 
 namespace S1FuelMod.Systems
 {
@@ -417,11 +420,31 @@ namespace S1FuelMod.Systems
         private void SetFuelPrice()
         {
             float basePrice = Constants.Fuel.FUEL_PRICE_PER_LITER;
+
+            // Use a hash based on the day index to create a dynamic price
             int hashCode = ("Petrol" + NetworkSingleton<TimeManager>.Instance.DayIndex.ToString()).GetHashCode();
             float time = Mathf.Lerp(0f, 0.2f, Mathf.InverseLerp(-2.1474836E+09f, 2.1474836E+09f, (float)hashCode));
-            float finalPrice = basePrice + (basePrice * time);
+
+            // Calculate a percentage increase based on the players tier in-game
+            float tierMultiplier = NetworkSingleton<LevelManager>.Instance.Rank switch
+            {   
+                ERank.Street_Rat => 1f, // Tier 0
+                ERank.Hoodlum => 1.05f, // Tier 1
+                ERank.Peddler => 1.1f, // Tier 2
+                ERank.Hustler => 1.15f, // Tier 3
+                ERank.Bagman => 1.2f, // Tier 4
+                ERank.Enforcer => 1.25f, // Tier 5
+                ERank.Shot_Caller => 1.3f, // Tier 6
+                ERank.Block_Boss => 1.4f, // Tier 7
+                ERank.Underlord => 1.5f, // Tier 8
+                ERank.Baron => 1.6f, // Tier 9
+                ERank.Kingpin => 1.8f, // Tier 10
+                _ => 1f // Higher tiers
+            };
+
+        float finalPrice = (basePrice + (basePrice * time) * tierMultiplier);
             pricePerLiter = finalPrice;
-            ModLogger.Debug($"Setting fuel price based on time: {basePrice} {time:F2} multiplier to {finalPrice:F2}");
+            ModLogger.Debug($"Setting fuel price based on time: {basePrice} {time:F2} and {tierMultiplier} multiplier to {finalPrice:F2}");
         }
 
         /// <summary>
