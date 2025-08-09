@@ -234,7 +234,7 @@ namespace S1FuelMod.UI
         /// Show fuel gauge for a specific vehicle
         /// </summary>
         /// <param name="vehicle">The vehicle to show gauge for</param>
-        private void ShowFuelGaugeForVehicle(LandVehicle vehicle)
+        public void ShowFuelGaugeForVehicle(LandVehicle vehicle)
         {
             try
             {

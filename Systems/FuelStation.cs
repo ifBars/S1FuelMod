@@ -149,6 +149,8 @@ namespace S1FuelMod.Systems
 
             try
             {
+                // Show FuelGaugeUI when hovering
+                Core.Instance?.GetFuelUIManager().ShowFuelGaugeForVehicle(GetNearestOwnedVehicle());
                 // Find target vehicle
                 _targetVehicle = GetNearestOwnedVehicle();
                 if (_targetVehicle == null)
@@ -194,6 +196,7 @@ namespace S1FuelMod.Systems
 
         public override void EndInteract()
         {
+            Core.Instance?.GetFuelUIManager()?.HideFuelGaugeForVehicle(_targetVehicle.GUID.ToString());
             if (_isRefueling)
             {
                 StopRefueling();
@@ -440,6 +443,7 @@ namespace S1FuelMod.Systems
                 {
                     StopRefueling();
                 }
+                Core.Instance?.GetFuelUIManager()?.HideFuelGaugeForVehicle(_targetVehicle.GUID.ToString());
 
                 ModLogger.Debug("FuelStation destroyed");
             }
