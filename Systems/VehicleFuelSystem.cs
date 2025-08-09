@@ -73,10 +73,10 @@ namespace S1FuelMod.Systems
                 if (Core.Instance != null)
                 {
                     SetVehicleType();
+                    baseFuelConsumptionRate = SetBaseFuelConsumption();
                     globalMaxFuelCapacity = Core.Instance.DefaultFuelCapacity;
                     maxFuelCapacity = SetMaxFuelCapacity();
                     currentFuelLevel = maxFuelCapacity; // Start with full tank for testing
-                    baseFuelConsumptionRate = Constants.Fuel.BASE_CONSUMPTION_RATE * Core.Instance.FuelConsumptionMultiplier;
                     idleConsumptionRate = Constants.Fuel.IDLE_CONSUMPTION_RATE * Core.Instance.FuelConsumptionMultiplier;
                 }
 
@@ -144,7 +144,7 @@ namespace S1FuelMod.Systems
         }
 
         /// <summary>
-        /// 
+        /// Set maximum fuel capacity based on vehicle type
         /// </summary>
         private float SetMaxFuelCapacity()
         {
@@ -170,6 +170,27 @@ namespace S1FuelMod.Systems
                 _ => Core.Instance.DefaultFuelCapacity // Fallback for null or unknown types
             };
             return newMaxCapacity;
+        }
+
+        /// <summary>
+        /// Set base fuel consumption rate based on vehicle type
+        /// </summary>
+        private float SetBaseFuelConsumption()
+        {
+            float baseConsumption = _vehicleType switch
+            {
+                VehicleType.Shitbox => Constants.Fuel.BASE_CONSUMPTION_RATE * 0.8f, // Efficient small engine
+                VehicleType.Veeper => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.0f, // Standard consumption
+                VehicleType.Bruiser => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.3f, // Heavy, thirsty vehicle
+                VehicleType.Dinkler => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.5f, // Compact, relatively efficient
+                VehicleType.Hounddog => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.0f, // Performance vehicle, higher consumption
+                VehicleType.Cheetah => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.3f, // High-performance sports car, high consumption
+                VehicleType.Other => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.0f, // Default consumption
+                _ => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.0f // Fallback for null or unknown types
+            };
+            
+            // Apply the global fuel consumption multiplier
+            return baseConsumption * Core.Instance.FuelConsumptionMultiplier;
         }
 
         /// <summary>
