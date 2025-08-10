@@ -12,6 +12,7 @@ using MelonLoader;
 #endif
 using S1FuelMod.Utils;
 using System.Runtime.CompilerServices;
+using Il2CppInterop.Runtime.Attributes;
 
 namespace S1FuelMod.Systems
 {
@@ -435,6 +436,9 @@ namespace S1FuelMod.Systems
         /// <summary>
         /// Get fuel data for saving
         /// </summary>
+#if !MONO
+        [HideFromIl2Cpp]
+#endif
         public FuelData GetFuelData()
         {
             return new FuelData
@@ -448,6 +452,9 @@ namespace S1FuelMod.Systems
         /// <summary>
         /// Load fuel data from save
         /// </summary>
+#if !MONO
+        [HideFromIl2Cpp]
+#endif
         public void LoadFuelData(FuelData data)
         {
             maxFuelCapacity = data.MaxFuelCapacity;
