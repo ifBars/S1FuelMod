@@ -103,7 +103,7 @@ namespace S1FuelMod
                 ModLogger.Info($"Scene initialized: {sceneName} (index: {buildIndex})");
 
                 // Initialize systems when we're in the main game scene
-                if (sceneName.Contains("GameScene") || sceneName.Contains("Main"))
+                if (sceneName.Contains(Constants.Game.MAIN_SCENE))
                 {
                     ModLogger.Info("Main game scene detected, initializing fuel systems...");
                     InitializeSystems();
@@ -129,7 +129,7 @@ namespace S1FuelMod
                 // Handle debug key inputs
                 HandleDebugInputs();
 
-                // Update fuel systems
+                // Update fuel systems (also pumps networking in manager)
                 _fuelSystemManager?.Update();
                 _fuelUIManager?.Update();
                 _fuelStationManager?.Update();

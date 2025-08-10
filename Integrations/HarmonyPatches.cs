@@ -445,7 +445,7 @@ namespace S1FuelMod.Integrations
                     if (UnityEngine.Random.Range(0f, 1f) < 0.1f) // 10% chance per frame
                     {
                         vehicle.currentThrottle *= 0.5f; // Reduce throttle by half
-                        ModLogger.FuelDebug($"Vehicle {fuelSystem.VehicleGUID.Substring(0, 8)}... engine stuttering");
+                        // ModLogger.FuelDebug($"Vehicle {fuelSystem.VehicleGUID.Substring(0, 8)}... engine stuttering");
                     }
                 }
 

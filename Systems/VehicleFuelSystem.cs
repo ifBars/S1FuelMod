@@ -53,6 +53,11 @@ namespace S1FuelMod.Systems
         public bool IsEngineRunning => _isEngineRunning;
         public string VehicleGUID => _vehicleGUID;
 
+        /// <summary>
+        /// Get the network ID for this vehicle (consistent across all clients)
+        /// </summary>
+        public string NetworkID => _landVehicle?.NetworkObject?.ObjectId.ToString() ?? _vehicleGUID;
+
         private void Awake()
         {
             try
