@@ -323,39 +323,59 @@ namespace S1FuelMod.Networking
         {
             ModLogger.Debug($"FuelNetwork: HandlePacket from {sender.m_SteamID} - {data.Length} bytes");
             
-            if (!MiniMessageSerializer.IsValidMessage(data))
+            try
             {
-                ModLogger.Warning($"FuelNetwork: Invalid message format from {sender.m_SteamID}");
-                return;
-            }
+                if (!MiniMessageSerializer.IsValidMessage(data))
+                {
+                    // Enhanced debugging for IL2CPP issues
+                    var debugInfo = $"Invalid message: length={data.Length}";
+                    if (data.Length >= 4)
+                    {
+                        var headerBytes = new byte[4];
+                        Array.Copy(data, 0, headerBytes, 0, 4);
+                        var headerStr = System.Text.Encoding.UTF8.GetString(headerBytes);
+                        debugInfo += $", header='{headerStr}'";
+                        if (data.Length >= 5)
+                        {
+                            debugInfo += $", typeLen={data[4]}";
+                        }
+                    }
+                    ModLogger.Warning($"FuelNetwork: Invalid message format from {sender.m_SteamID} - {debugInfo}");
+                    return;
+                }
 
-            string? type = MiniMessageSerializer.GetMessageType(data);
-            if (string.IsNullOrEmpty(type)) 
-            {
-                ModLogger.Warning($"FuelNetwork: Empty message type from {sender.m_SteamID}");
-                return;
-            }
+                string? type = MiniMessageSerializer.GetMessageType(data);
+                if (string.IsNullOrEmpty(type)) 
+                {
+                    ModLogger.Warning($"FuelNetwork: Empty message type from {sender.m_SteamID}");
+                    return;
+                }
 
-            ModLogger.Debug($"FuelNetwork: Processing {type} from {sender.m_SteamID}");
+                ModLogger.Debug($"FuelNetwork: Processing {type} from {sender.m_SteamID}");
 
-            if (type == FuelUpdateMessage.TYPE)
-            {
-                var msg = MiniMessageSerializer.CreateMessage<FuelUpdateMessage>(data);
-                OnFuelUpdateReceived(sender, msg);
+                if (type == FuelUpdateMessage.TYPE)
+                {
+                    var msg = MiniMessageSerializer.CreateMessage<FuelUpdateMessage>(data);
+                    OnFuelUpdateReceived(sender, msg);
+                }
+                else if (type == FuelSnapshotMessage.TYPE)
+                {
+                    var msg = MiniMessageSerializer.CreateMessage<FuelSnapshotMessage>(data);
+                    OnFuelSnapshotReceived(sender, msg);
+                }
+                else if (type == FuelSnapshotRequestMessage.TYPE)
+                {
+                    var msg = MiniMessageSerializer.CreateMessage<FuelSnapshotRequestMessage>(data);
+                    OnFuelSnapshotRequestReceived(sender, msg);
+                }
+                else
+                {
+                    ModLogger.Warning($"FuelNetwork: Unknown message type: {type}");
+                }
             }
-            else if (type == FuelSnapshotMessage.TYPE)
+            catch (Exception ex)
             {
-                var msg = MiniMessageSerializer.CreateMessage<FuelSnapshotMessage>(data);
-                OnFuelSnapshotReceived(sender, msg);
-            }
-            else if (type == FuelSnapshotRequestMessage.TYPE)
-            {
-                var msg = MiniMessageSerializer.CreateMessage<FuelSnapshotRequestMessage>(data);
-                OnFuelSnapshotRequestReceived(sender, msg);
-            }
-            else
-            {
-                ModLogger.Warning($"FuelNetwork: Unknown message type: {type}");
+                ModLogger.Error($"FuelNetwork: HandlePacket error from {sender.m_SteamID}", ex);
             }
         }
 
