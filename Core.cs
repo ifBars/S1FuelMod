@@ -422,6 +422,13 @@ namespace S1FuelMod
             {
                 var localPlayer = Player.Local;
                 var vehicle = localPlayer?.CurrentVehicle?.GetComponent<LandVehicle>();
+                
+                if (vehicle == null)
+                {
+                    ModLogger.Info("F7: No vehicle found - player is not in a land vehicle");
+                    return;
+                }
+                
                 var fuelSystem = _fuelSystemManager?.GetFuelSystem(vehicle.GUID.ToString());
 
                 if (fuelSystem == null)
