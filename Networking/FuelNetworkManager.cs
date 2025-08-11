@@ -1,6 +1,8 @@
 using UnityEngine;
 using S1FuelMod.Systems;
 using S1FuelMod.Utils;
+using System;
+using System.Linq;
 #if MONO
 using ScheduleOne.Vehicles;
 using ScheduleOne.Networking;
@@ -11,6 +13,7 @@ using Il2Cpp;
 using Il2CppScheduleOne.Networking;
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppSteamworks;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 #endif
 
 namespace S1FuelMod.Networking
@@ -117,7 +120,14 @@ namespace S1FuelMod.Networking
 
             // Ensure Steam callbacks process (critical for IL2CPP)
 #if !MONO
-            try { SteamAPI.RunCallbacks(); } catch { }
+            try 
+            { 
+                SteamAPI.RunCallbacks(); 
+            } 
+            catch (Exception ex)
+            {
+                ModLogger.Error("FuelNetwork: SteamAPI.RunCallbacks failed", ex);
+            }
 #endif
             ProcessIncomingPackets();
             ProcessHeartbeat();
@@ -287,13 +297,39 @@ namespace S1FuelMod.Networking
                         if (packetSize == 0 || packetSize > 32 * 1024)
                         {
                             // discard oversized
+#if !MONO
+                            var discardArray = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>(packetSize);
+                            uint discardRead;
+                            SteamNetworking.ReadP2PPacket(discardArray, packetSize, out discardRead, out remoteId, channel);
+#else
                             var discard = new byte[packetSize];
                             uint read;
                             SteamNetworking.ReadP2PPacket(discard, packetSize, out read, out remoteId, channel);
+#endif
                             ModLogger.Warning($"FuelNetwork: Discarded oversized packet: {packetSize} bytes");
                             continue;
                         }
 
+#if !MONO
+                        // IL2CPP-specific: Use Il2CppStructArray to avoid marshalling issues
+                        var il2cppBuffer = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>(packetSize);
+                        uint bytesRead;
+                        
+                        if (SteamNetworking.ReadP2PPacket(il2cppBuffer, packetSize, out bytesRead, out remoteId, channel))
+                        {
+                            ModLogger.Debug($"FuelNetwork: Read P2P packet - {bytesRead} bytes from {remoteId}, channel {channel}");
+                            if (bytesRead > 0)
+                            {
+                                // Convert Il2CppStructArray to regular byte array
+                                byte[] data = new byte[bytesRead];
+                                for (int i = 0; i < bytesRead; i++)
+                                {
+                                    data[i] = il2cppBuffer[i];
+                                }
+                                HandlePacket(remoteId, data);
+                            }
+                        }
+#else
                         var data = new byte[packetSize];
                         uint bytesRead;
                         if (SteamNetworking.ReadP2PPacket(data, packetSize, out bytesRead, out remoteId, channel))
@@ -301,9 +337,17 @@ namespace S1FuelMod.Networking
                             ModLogger.Debug($"FuelNetwork: Read P2P packet - {bytesRead} bytes from {remoteId}, channel {channel}");
                             if (bytesRead > 0)
                             {
+                                // Trim data to actual bytes read for Mono
+                                if (bytesRead < packetSize)
+                                {
+                                    var trimmedData = new byte[bytesRead];
+                                    Array.Copy(data, trimmedData, bytesRead);
+                                    data = trimmedData;
+                                }
                                 HandlePacket(remoteId, data);
                             }
                         }
+#endif
                     }
                 }
             }
@@ -319,6 +363,15 @@ namespace S1FuelMod.Networking
             
             try
             {
+#if !MONO
+                // IL2CPP debugging: Log raw packet data for first few bytes
+                if (data.Length > 0)
+                {
+                    var hexBytes = string.Join(" ", data.Take(Math.Min(16, data.Length)).Select(b => b.ToString("X2")));
+                    ModLogger.Debug($"FuelNetwork: Raw packet data (first {Math.Min(16, data.Length)} bytes): {hexBytes}");
+                }
+#endif
+                
                 if (!MiniMessageSerializer.IsValidMessage(data))
                 {
                     // Enhanced debugging for IL2CPP issues
@@ -328,12 +381,22 @@ namespace S1FuelMod.Networking
                         var headerBytes = new byte[4];
                         Array.Copy(data, 0, headerBytes, 0, 4);
                         var headerStr = System.Text.Encoding.UTF8.GetString(headerBytes);
-                        debugInfo += $", header='{headerStr}'";
+                        debugInfo += $", header='{headerStr}' (expected='SNLM')";
                         if (data.Length >= 5)
                         {
                             debugInfo += $", typeLen={data[4]}";
                         }
                     }
+                    
+#if !MONO
+                    // IL2CPP: Also log if all bytes are zero (common corruption pattern)
+                    bool allZero = data.All(b => b == 0);
+                    if (allZero)
+                    {
+                        debugInfo += " - ALL BYTES ARE ZERO (memory corruption detected)";
+                    }
+#endif
+                    
                     ModLogger.Warning($"FuelNetwork: Invalid message format from {sender.m_SteamID} - {debugInfo}");
                     return;
                 }
