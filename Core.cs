@@ -1,6 +1,13 @@
 ﻿using MelonLoader;
 using HarmonyLib;
 using System;
+#if MONO
+using ScheduleOne.PlayerScripts;
+using ScheduleOne.Vehicles;
+#else
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.Vehicles;
+#endif
 using MelonLoader.Preferences;
 using S1FuelMod.Utils;
 using S1FuelMod.Integrations;
@@ -358,7 +365,7 @@ namespace S1FuelMod
         {
             try
             {
-                var localPlayer = ScheduleOne.PlayerScripts.Player.Local;
+                var localPlayer = Player.Local;
                 if (localPlayer?.CurrentVehicle == null)
                 {
                     ModLogger.Info("F12: Player not in vehicle");
@@ -413,9 +420,16 @@ namespace S1FuelMod
         {
             try
             {
-                var localPlayer = ScheduleOne.PlayerScripts.Player.Local;
-                var vehicle = localPlayer?.CurrentVehicle?.GetComponent<ScheduleOne.Vehicles.LandVehicle>();
-                var fuelSystem = _fuelSystemManager?.GetFuelSystem(vehicle);
+                var localPlayer = Player.Local;
+                var vehicle = localPlayer?.CurrentVehicle?.GetComponent<LandVehicle>();
+                
+                if (vehicle == null)
+                {
+                    ModLogger.Info("F7: No vehicle found - player is not in a land vehicle");
+                    return;
+                }
+                
+                var fuelSystem = _fuelSystemManager?.GetFuelSystem(vehicle.GUID.ToString());
 
                 if (fuelSystem == null)
                 {
@@ -497,7 +511,7 @@ namespace S1FuelMod
         {
             try
             {
-                var localPlayer = ScheduleOne.PlayerScripts.Player.Local;
+                var localPlayer = Player.Local;
                 if (localPlayer == null)
                 {
                     ModLogger.Debug("No local player found");
@@ -511,7 +525,7 @@ namespace S1FuelMod
                 }
 
                 var vehicleNetworkObject = localPlayer.CurrentVehicle;
-                var vehicle = vehicleNetworkObject.GetComponent<ScheduleOne.Vehicles.LandVehicle>();
+                var vehicle = vehicleNetworkObject.GetComponent<LandVehicle>();
 
                 if (vehicle == null)
                 {
@@ -519,7 +533,7 @@ namespace S1FuelMod
                     return;
                 }
 
-                var fuelSystem = _fuelSystemManager?.GetFuelSystem(vehicle);
+                var fuelSystem = _fuelSystemManager?.GetFuelSystem(vehicle.GUID.ToString());
                 if (fuelSystem == null)
                 {
                     ModLogger.Info($"No fuel system found for vehicle {vehicle.VehicleName} ({vehicle.GUID.ToString().Substring(0, 8)}...)");

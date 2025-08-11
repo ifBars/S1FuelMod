@@ -1,18 +1,19 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
-using ScheduleOne.Vehicles;
-using ScheduleOne.Networking;
 using S1FuelMod.Systems;
 using S1FuelMod.Utils;
-using ScheduleOne.DevUtilities;
-using UnityEngine.Events;
+using System;
+using System.Linq;
 #if MONO
+using ScheduleOne.Vehicles;
+using ScheduleOne.Networking;
+using ScheduleOne.DevUtilities;
 using Steamworks;
 #else
+using Il2Cpp;
+using Il2CppScheduleOne.Networking;
+using Il2CppScheduleOne.DevUtilities;
 using Il2CppSteamworks;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 #endif
 
 namespace S1FuelMod.Networking
@@ -29,10 +30,8 @@ namespace S1FuelMod.Networking
         private bool _disposed;
 
         // IL2CPP-safe Steam callbacks
-#if MONO
         private Callback<P2PSessionRequest_t>? _sessionRequestCb;
         private Callback<P2PSessionConnectFail_t>? _sessionFailCb;
-#endif
 
         // Per-vehicle throttling of outbound updates
         // Removed old throttling system - now using heartbeat-based updates
@@ -75,8 +74,8 @@ namespace S1FuelMod.Networking
                 }
 
                 // Steam callbacks for P2P sessions
-                _sessionRequestCb = Callback<P2PSessionRequest_t>.Create(OnSessionRequest);
-                _sessionFailCb = Callback<P2PSessionConnectFail_t>.Create(OnSessionConnectFail);
+                _sessionRequestCb = Callback<P2PSessionRequest_t>.Create((Callback<P2PSessionRequest_t>.DispatchDelegate)OnSessionRequest);
+                _sessionFailCb = Callback<P2PSessionConnectFail_t>.Create((Callback<P2PSessionConnectFail_t>.DispatchDelegate)OnSessionConnectFail);
 
                 // Allow relay for reliability
 #if !MONO
@@ -121,7 +120,14 @@ namespace S1FuelMod.Networking
 
             // Ensure Steam callbacks process (critical for IL2CPP)
 #if !MONO
-            try { SteamAPI.RunCallbacks(); } catch { }
+            try 
+            { 
+                SteamAPI.RunCallbacks(); 
+            } 
+            catch (Exception ex)
+            {
+                ModLogger.Error("FuelNetwork: SteamAPI.RunCallbacks failed", ex);
+            }
 #endif
             ProcessIncomingPackets();
             ProcessHeartbeat();
@@ -291,13 +297,39 @@ namespace S1FuelMod.Networking
                         if (packetSize == 0 || packetSize > 32 * 1024)
                         {
                             // discard oversized
+#if !MONO
+                            var discardArray = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>(packetSize);
+                            uint discardRead;
+                            SteamNetworking.ReadP2PPacket(discardArray, packetSize, out discardRead, out remoteId, channel);
+#else
                             var discard = new byte[packetSize];
                             uint read;
                             SteamNetworking.ReadP2PPacket(discard, packetSize, out read, out remoteId, channel);
+#endif
                             ModLogger.Warning($"FuelNetwork: Discarded oversized packet: {packetSize} bytes");
                             continue;
                         }
 
+#if !MONO
+                        // IL2CPP-specific: Use Il2CppStructArray to avoid marshalling issues
+                        var il2cppBuffer = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>(packetSize);
+                        uint bytesRead;
+                        
+                        if (SteamNetworking.ReadP2PPacket(il2cppBuffer, packetSize, out bytesRead, out remoteId, channel))
+                        {
+                            ModLogger.Debug($"FuelNetwork: Read P2P packet - {bytesRead} bytes from {remoteId}, channel {channel}");
+                            if (bytesRead > 0)
+                            {
+                                // Convert Il2CppStructArray to regular byte array
+                                byte[] data = new byte[bytesRead];
+                                for (int i = 0; i < bytesRead; i++)
+                                {
+                                    data[i] = il2cppBuffer[i];
+                                }
+                                HandlePacket(remoteId, data);
+                            }
+                        }
+#else
                         var data = new byte[packetSize];
                         uint bytesRead;
                         if (SteamNetworking.ReadP2PPacket(data, packetSize, out bytesRead, out remoteId, channel))
@@ -305,9 +337,17 @@ namespace S1FuelMod.Networking
                             ModLogger.Debug($"FuelNetwork: Read P2P packet - {bytesRead} bytes from {remoteId}, channel {channel}");
                             if (bytesRead > 0)
                             {
+                                // Trim data to actual bytes read for Mono
+                                if (bytesRead < packetSize)
+                                {
+                                    var trimmedData = new byte[bytesRead];
+                                    Array.Copy(data, trimmedData, bytesRead);
+                                    data = trimmedData;
+                                }
                                 HandlePacket(remoteId, data);
                             }
                         }
+#endif
                     }
                 }
             }
@@ -321,39 +361,78 @@ namespace S1FuelMod.Networking
         {
             ModLogger.Debug($"FuelNetwork: HandlePacket from {sender.m_SteamID} - {data.Length} bytes");
             
-            if (!MiniMessageSerializer.IsValidMessage(data))
+            try
             {
-                ModLogger.Warning($"FuelNetwork: Invalid message format from {sender.m_SteamID}");
-                return;
-            }
+#if !MONO
+                // IL2CPP debugging: Log raw packet data for first few bytes
+                if (data.Length > 0)
+                {
+                    var hexBytes = string.Join(" ", data.Take(Math.Min(16, data.Length)).Select(b => b.ToString("X2")));
+                    ModLogger.Debug($"FuelNetwork: Raw packet data (first {Math.Min(16, data.Length)} bytes): {hexBytes}");
+                }
+#endif
+                
+                if (!MiniMessageSerializer.IsValidMessage(data))
+                {
+                    // Enhanced debugging for IL2CPP issues
+                    var debugInfo = $"Invalid message: length={data.Length}";
+                    if (data.Length >= 4)
+                    {
+                        var headerBytes = new byte[4];
+                        Array.Copy(data, 0, headerBytes, 0, 4);
+                        var headerStr = System.Text.Encoding.UTF8.GetString(headerBytes);
+                        debugInfo += $", header='{headerStr}' (expected='SNLM')";
+                        if (data.Length >= 5)
+                        {
+                            debugInfo += $", typeLen={data[4]}";
+                        }
+                    }
+                    
+#if !MONO
+                    // IL2CPP: Also log if all bytes are zero (common corruption pattern)
+                    bool allZero = data.All(b => b == 0);
+                    if (allZero)
+                    {
+                        debugInfo += " - ALL BYTES ARE ZERO (memory corruption detected)";
+                    }
+#endif
+                    
+                    ModLogger.Warning($"FuelNetwork: Invalid message format from {sender.m_SteamID} - {debugInfo}");
+                    return;
+                }
 
-            string? type = MiniMessageSerializer.GetMessageType(data);
-            if (string.IsNullOrEmpty(type)) 
-            {
-                ModLogger.Warning($"FuelNetwork: Empty message type from {sender.m_SteamID}");
-                return;
-            }
+                string? type = MiniMessageSerializer.GetMessageType(data);
+                if (string.IsNullOrEmpty(type)) 
+                {
+                    ModLogger.Warning($"FuelNetwork: Empty message type from {sender.m_SteamID}");
+                    return;
+                }
 
-            ModLogger.Debug($"FuelNetwork: Processing {type} from {sender.m_SteamID}");
+                ModLogger.Debug($"FuelNetwork: Processing {type} from {sender.m_SteamID}");
 
-            if (type == FuelUpdateMessage.TYPE)
-            {
-                var msg = MiniMessageSerializer.CreateMessage<FuelUpdateMessage>(data);
-                OnFuelUpdateReceived(sender, msg);
+                if (type == FuelUpdateMessage.TYPE)
+                {
+                    var msg = MiniMessageSerializer.CreateMessage<FuelUpdateMessage>(data);
+                    OnFuelUpdateReceived(sender, msg);
+                }
+                else if (type == FuelSnapshotMessage.TYPE)
+                {
+                    var msg = MiniMessageSerializer.CreateMessage<FuelSnapshotMessage>(data);
+                    OnFuelSnapshotReceived(sender, msg);
+                }
+                else if (type == FuelSnapshotRequestMessage.TYPE)
+                {
+                    var msg = MiniMessageSerializer.CreateMessage<FuelSnapshotRequestMessage>(data);
+                    OnFuelSnapshotRequestReceived(sender, msg);
+                }
+                else
+                {
+                    ModLogger.Warning($"FuelNetwork: Unknown message type: {type}");
+                }
             }
-            else if (type == FuelSnapshotMessage.TYPE)
+            catch (Exception ex)
             {
-                var msg = MiniMessageSerializer.CreateMessage<FuelSnapshotMessage>(data);
-                OnFuelSnapshotReceived(sender, msg);
-            }
-            else if (type == FuelSnapshotRequestMessage.TYPE)
-            {
-                var msg = MiniMessageSerializer.CreateMessage<FuelSnapshotRequestMessage>(data);
-                OnFuelSnapshotRequestReceived(sender, msg);
-            }
-            else
-            {
-                ModLogger.Warning($"FuelNetwork: Unknown message type: {type}");
+                ModLogger.Error($"FuelNetwork: HandlePacket error from {sender.m_SteamID}", ex);
             }
         }
 

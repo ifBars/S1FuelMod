@@ -1,28 +1,36 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Events;
+using MelonLoader;
+#if MONO
 using ScheduleOne.Vehicles;
 using ScheduleOne.DevUtilities;
+#else
+using Il2CppScheduleOne.Vehicles;
+using Il2CppInterop.Runtime.Attributes;
+#endif
 using S1FuelMod.Utils;
-using System.Runtime.CompilerServices;
+
 
 namespace S1FuelMod.Systems
 {
     /// <summary>
     /// Component that manages fuel for a single LandVehicle
     /// </summary>
+#if !MONO
+    [RegisterTypeInIl2Cpp]
+#endif
     public class VehicleFuelSystem : MonoBehaviour
     {
-        [Header("Fuel Settings")]
-        [SerializeField] private float currentFuelLevel = 50f;
-        [SerializeField] private float maxFuelCapacity = 50f;
-        [SerializeField] private float globalMaxFuelCapacity = 50f;
-        [SerializeField] private float baseFuelConsumptionRate = 6f; // liters per hour at full throttle
-        [SerializeField] private float idleConsumptionRate = 0.5f; // liters per hour when idling
+        // Fuel Settings
+        private float currentFuelLevel = 50f;
+        private float maxFuelCapacity = 50f;
+        private float globalMaxFuelCapacity = 50f;
+        private float baseFuelConsumptionRate = 6f; // liters per hour at full throttle
+        private float idleConsumptionRate = 0.5f; // liters per hour when idling
 
-        [Header("Warning Settings")]
-        [SerializeField] private float lowFuelThreshold = 30f; // percentage
-        [SerializeField] private float criticalFuelThreshold = 5f; // percentage
+        // Warning Settings
+        private float lowFuelThreshold = 30f; // percentage
+        private float criticalFuelThreshold = 5f; // percentage
 
         // Component references
         private LandVehicle? _landVehicle;
@@ -57,6 +65,13 @@ namespace S1FuelMod.Systems
         /// Get the network ID for this vehicle (consistent across all clients)
         /// </summary>
         public string NetworkID => _landVehicle?.NetworkObject?.ObjectId.ToString() ?? _vehicleGUID;
+
+#if !MONO
+        /// <summary>
+        /// IL2CPP constructor required for RegisterTypeInIl2Cpp
+        /// </summary>
+        public VehicleFuelSystem(IntPtr ptr) : base(ptr) { }
+#endif
 
         private void Awake()
         {
@@ -101,8 +116,17 @@ namespace S1FuelMod.Systems
                 // Subscribe to vehicle events if available
                 if (_landVehicle != null)
                 {
-                    _landVehicle.onVehicleStart?.AddListener(OnVehicleStarted);
-                    _landVehicle.onVehicleStop?.AddListener(OnVehicleStopped);
+#if !MONO
+                    if (_landVehicle.onVehicleStart != null)
+                        _landVehicle.onVehicleStart.AddListener(new Action(OnVehicleStarted));
+                    if (_landVehicle.onVehicleStop != null)
+                        _landVehicle.onVehicleStop.AddListener(new Action(OnVehicleStopped));
+#else
+                    if (_landVehicle.onVehicleStart != null)
+                        _landVehicle.onVehicleStart.AddListener(OnVehicleStarted);
+                    if (_landVehicle.onVehicleStop != null)
+                        _landVehicle.onVehicleStop.AddListener(OnVehicleStopped);
+#endif
                 }
 
                 // Initialize time tracking
@@ -416,6 +440,9 @@ namespace S1FuelMod.Systems
         /// <summary>
         /// Get fuel data for saving
         /// </summary>
+#if !MONO
+        [HideFromIl2Cpp]
+#endif
         public FuelData GetFuelData()
         {
             return new FuelData
@@ -429,11 +456,43 @@ namespace S1FuelMod.Systems
         /// <summary>
         /// Load fuel data from save
         /// </summary>
+#if !MONO
+        [HideFromIl2Cpp]
+#endif
         public void LoadFuelData(FuelData data)
         {
             maxFuelCapacity = data.MaxFuelCapacity;
             currentFuelLevel = data.CurrentFuelLevel;
             baseFuelConsumptionRate = data.FuelConsumptionRate;
+            
+            TriggerFuelLevelChanged();
+            ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... fuel data loaded");
+        }
+
+        /// <summary>
+        /// Get fuel data for saving (IL2CPP compatible version)
+        /// </summary>
+        /// <param name="currentLevel">Output: current fuel level</param>
+        /// <param name="maxCapacity">Output: maximum fuel capacity</param>
+        /// <param name="consumptionRate">Output: fuel consumption rate</param>
+        public void GetFuelDataValues(out float currentLevel, out float maxCapacity, out float consumptionRate)
+        {
+            currentLevel = currentFuelLevel;
+            maxCapacity = maxFuelCapacity;
+            consumptionRate = baseFuelConsumptionRate;
+        }
+
+        /// <summary>
+        /// Load fuel data from save (IL2CPP compatible version)
+        /// </summary>
+        /// <param name="currentLevel">Current fuel level</param>
+        /// <param name="maxCapacity">Maximum fuel capacity</param>
+        /// <param name="consumptionRate">Fuel consumption rate</param>
+        public void LoadFuelDataValues(float currentLevel, float maxCapacity, float consumptionRate)
+        {
+            maxFuelCapacity = maxCapacity;
+            currentFuelLevel = currentLevel;
+            baseFuelConsumptionRate = consumptionRate;
             
             TriggerFuelLevelChanged();
             ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... fuel data loaded");
@@ -474,8 +533,17 @@ namespace S1FuelMod.Systems
                 // Unsubscribe from events
                 if (_landVehicle != null)
                 {
-                    _landVehicle.onVehicleStart?.RemoveListener(OnVehicleStarted);
-                    _landVehicle.onVehicleStop?.RemoveListener(OnVehicleStopped);
+#if !MONO
+                    if (_landVehicle.onVehicleStart != null)
+                        _landVehicle.onVehicleStart.RemoveListener(new System.Action(OnVehicleStarted));
+                    if (_landVehicle.onVehicleStop != null)
+                        _landVehicle.onVehicleStop.RemoveListener(new System.Action(OnVehicleStopped));
+#else
+                    if (_landVehicle.onVehicleStart != null)
+                        _landVehicle.onVehicleStart.RemoveListener(OnVehicleStarted);
+                    if (_landVehicle.onVehicleStop != null)
+                        _landVehicle.onVehicleStop.RemoveListener(OnVehicleStopped);
+#endif
                 }
 
                 ModLogger.FuelDebug($"VehicleFuelSystem destroyed for vehicle {_vehicleGUID.Substring(0, 8)}...");

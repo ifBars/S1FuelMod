@@ -1,4 +1,8 @@
-﻿using S1FuelMod.Utils;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using S1FuelMod.Utils;
+#if MONO
 using ScheduleOne.DevUtilities;
 using ScheduleOne.GameTime;
 using ScheduleOne.Interaction;
@@ -7,7 +11,19 @@ using ScheduleOne.Money;
 using ScheduleOne.Persistence.Datas;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Vehicles;
+#else
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.GameTime;
+using Il2CppScheduleOne.Interaction;
+using Il2CppScheduleOne.Levelling;
+using Il2CppScheduleOne.Money;
+using Il2CppScheduleOne.Persistence.Datas;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.Vehicles;
+using MelonLoader;
+#endif
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace S1FuelMod.Systems
 {
@@ -15,20 +31,22 @@ namespace S1FuelMod.Systems
     /// FuelStation component that handles vehicle refueling interactions
     /// Attaches to gameobjects named "Bowser (EMC Merge)" to make them functional fuel stations
     /// </summary>
+#if !MONO
+    [RegisterTypeInIl2Cpp]
+#endif
     public class FuelStation : InteractableObject
     {
-        [Header("Fuel Station Settings")]
-        [SerializeField] private float refuelRate = 10f; // liters per second
-        [SerializeField] private float pricePerLiter = 1.5f;
-        [SerializeField] private float maxInteractionDistance = 4f;
-        [SerializeField] private float vehicleDetectionRadius = 6f;
-        [SerializeField] private LayerMask vehicleLayerMask = ~0; // All layers by default
+        // Fuel Station Settings
+        private float refuelRate = 10f; // liters per second
+        private float pricePerLiter = 1.5f;
+        private float maxInteractionDistance = 4f;
+        private float vehicleDetectionRadius = 6f;
 
-        [Header("Audio")]
-        [SerializeField] private AudioSource refuelAudioSource;
-        [SerializeField] private AudioClip refuelStartSound;
-        [SerializeField] private AudioClip refuelLoopSound;
-        [SerializeField] private AudioClip refuelEndSound;
+        // Audio
+        private AudioSource refuelAudioSource;
+        private AudioClip refuelStartSound;
+        private AudioClip refuelLoopSound;
+        private AudioClip refuelEndSound;
 
         // State tracking
         private bool _isRefueling = false;
@@ -41,6 +59,13 @@ namespace S1FuelMod.Systems
         // Components
         private MoneyManager _moneyManager;
         private FuelSystemManager _fuelSystemManager;
+
+#if !MONO
+        /// <summary>
+        /// IL2CPP constructor required for RegisterTypeInIl2Cpp
+        /// </summary>
+        public FuelStation(IntPtr ptr) : base(ptr) { }
+#endif
 
         private void Start()
         {
@@ -106,42 +131,71 @@ namespace S1FuelMod.Systems
 
         public override void Hovered()
         {
-            // Check for nearby owned vehicles before showing interaction
-            var nearbyVehicle = GetNearestOwnedVehicle();
-
-            if (nearbyVehicle != null)
+            try
             {
-                var fuelSystem = _fuelSystemManager?.GetFuelSystem(nearbyVehicle);
-                if (fuelSystem != null)
-                {
-                    SetFuelPrice();
-                    float fuelNeeded = fuelSystem.MaxFuelCapacity - fuelSystem.CurrentFuelLevel;
-                    float estimatedCost = fuelNeeded * pricePerLiter;
+                // Check for nearby owned vehicles before showing interaction
+                var nearbyVehicle = GetNearestOwnedVehicle();
 
-                    if (fuelNeeded > 0.1f) // Only show if vehicle needs fuel
+                if (nearbyVehicle != null && nearbyVehicle.gameObject != null)
+                {
+                    try
                     {
-                        SetMessage($"Refuel {nearbyVehicle.VehicleName} - {MoneyManager.FormatAmount(estimatedCost)} | ${pricePerLiter:F2}/L");
-                        SetInteractableState(EInteractableState.Default);
+                        var fuelSystem = _fuelSystemManager?.GetFuelSystem(nearbyVehicle.GUID.ToString());
+                        if (fuelSystem != null)
+                        {
+                            SetFuelPrice();
+                            float fuelNeeded = fuelSystem.MaxFuelCapacity - fuelSystem.CurrentFuelLevel;
+                            float estimatedCost = fuelNeeded * pricePerLiter;
+
+                            if (fuelNeeded > 0.1f) // Only show if vehicle needs fuel
+                            {
+                                SetMessage($"Refuel {nearbyVehicle.VehicleName} - {MoneyManager.FormatAmount(estimatedCost)} | ${pricePerLiter:F2}/L");
+                                SetInteractableState(EInteractableState.Default);
+                            }
+                            else
+                            {
+                                SetMessage($"{nearbyVehicle.VehicleName} - Tank Full");
+                                SetInteractableState(EInteractableState.Invalid);
+                            }
+                        }
+                        else
+                        {
+                            SetMessage("Vehicle has no fuel system");
+                            SetInteractableState(EInteractableState.Invalid);
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        SetMessage($"{nearbyVehicle.VehicleName} - Tank Full");
+                        ModLogger.Debug($"Error accessing vehicle properties in Hovered: {ex.Message}");
+                        SetMessage("Vehicle not accessible");
                         SetInteractableState(EInteractableState.Invalid);
                     }
                 }
                 else
                 {
-                    SetMessage("Vehicle has no fuel system");
+                    SetMessage("No owned vehicle nearby");
                     SetInteractableState(EInteractableState.Invalid);
                 }
+
+                // Manually invoke base functionality without calling base.Hovered() to avoid IL2CPP recursion
+                // Invoke the onHovered event
+                if (onHovered != null)
+                {
+                    onHovered.Invoke();
+                }
+                
+                // Show the interaction message if not disabled
+                if (interactionState != EInteractableState.Disabled)
+                {
+                    ShowMessage();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                SetMessage("No owned vehicle nearby");
+                ModLogger.Error("Error in FuelStation.Hovered", ex);
+                SetMessage("Error");
                 SetInteractableState(EInteractableState.Invalid);
             }
-
-            base.Hovered();
         }
 
         public override void StartInteract()
@@ -150,18 +204,35 @@ namespace S1FuelMod.Systems
 
             try
             {
-                // Show FuelGaugeUI when hovering
-                Core.Instance?.GetFuelUIManager().ShowFuelGaugeForVehicle(GetNearestOwnedVehicle());
                 // Find target vehicle
                 _targetVehicle = GetNearestOwnedVehicle();
-                if (_targetVehicle == null)
+                if (_targetVehicle == null || _targetVehicle.gameObject == null)
                 {
                     ShowMessage("No owned vehicle nearby!", MessageType.Error);
                     return;
                 }
 
+                // Show FuelGaugeUI when starting interaction
+                try
+                {
+                    Core.Instance?.GetFuelUIManager()?.ShowFuelGaugeForVehicle(_targetVehicle);
+                }
+                catch (Exception uiEx)
+                {
+                    ModLogger.Debug($"Error showing fuel gauge UI: {uiEx.Message}");
+                }
+
                 // Get fuel system
-                _targetFuelSystem = _fuelSystemManager?.GetFuelSystem(_targetVehicle);
+                try
+                {
+                    _targetFuelSystem = _fuelSystemManager?.GetFuelSystem(_targetVehicle.GUID.ToString());
+                }
+                catch (Exception fuelSystemEx)
+                {
+                    ModLogger.Debug($"Error getting fuel system: {fuelSystemEx.Message}");
+                    _targetFuelSystem = null;
+                }
+
                 if (_targetFuelSystem == null)
                 {
                     ShowMessage("Vehicle has no fuel system!", MessageType.Error);
@@ -183,6 +254,35 @@ namespace S1FuelMod.Systems
                     return;
                 }
 
+                // Manually invoke base functionality without calling base.StartInteract() to avoid IL2CPP recursion
+                if (interactionState != EInteractableState.Invalid)
+                {
+                    // Invoke the onInteractStart event
+                    if (onInteractStart != null)
+                    {
+                        onInteractStart.Invoke();
+                    }
+                    
+                    // Apply the interaction display scale effect
+#if MONO
+                    Singleton<InteractionManager>.Instance.LerpDisplayScale(0.9f);
+#else
+                    // IL2CPP safe access
+                    try
+                    {
+                        var interactionManager = Singleton<InteractionManager>.Instance;
+                        if (interactionManager != null)
+                        {
+                            interactionManager.LerpDisplayScale(0.9f);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ModLogger.Debug($"Error accessing InteractionManager: {ex.Message}");
+                    }
+#endif
+                }
+
                 // Start refueling
                 StartRefueling();
             }
@@ -191,19 +291,48 @@ namespace S1FuelMod.Systems
                 ModLogger.Error("Error starting fuel station interaction", ex);
                 ShowMessage("Error starting refuel process", MessageType.Error);
             }
-
-            base.StartInteract();
         }
 
         public override void EndInteract()
         {
-            Core.Instance?.GetFuelUIManager()?.HideFuelGaugeForVehicle(_targetVehicle.GUID.ToString());
-            if (_isRefueling)
+            try
             {
-                StopRefueling();
-            }
+                Core.Instance?.GetFuelUIManager()?.HideFuelGaugeForVehicle(_targetVehicle?.GUID.ToString());
+                if (_isRefueling)
+                {
+                    StopRefueling();
+                }
 
-            base.EndInteract();
+                // Manually invoke base functionality without calling base.EndInteract() to avoid IL2CPP recursion
+                // Invoke the onInteractEnd event
+                if (onInteractEnd != null)
+                {
+                    onInteractEnd.Invoke();
+                }
+                
+                // Reset the interaction display scale effect
+#if MONO
+                Singleton<InteractionManager>.Instance.LerpDisplayScale(1f);
+#else
+                // IL2CPP safe access
+                try
+                {
+                    var interactionManager = Singleton<InteractionManager>.Instance;
+                    if (interactionManager != null)
+                    {
+                        interactionManager.LerpDisplayScale(1f);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ModLogger.Debug($"Error accessing InteractionManager in EndInteract: {ex.Message}");
+                }
+#endif
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error in FuelStation.EndInteract", ex);
+            }
         }
 
         /// <summary>
@@ -336,28 +465,78 @@ namespace S1FuelMod.Systems
         {
             try
             {
-                // Find all vehicles within detection radius
-                Collider[] nearbyColliders = Physics.OverlapSphere(transform.position, vehicleDetectionRadius, vehicleLayerMask);
+                // Find all vehicles within detection radius - IL2CPP safe version without layer mask
+                Collider[] nearbyColliders = null;
+                
+                try
+                {
+                    nearbyColliders = Physics.OverlapSphere(transform.position, vehicleDetectionRadius);
+                }
+                catch (Exception physicsEx)
+                {
+                    ModLogger.Error("Error calling Physics.OverlapSphere", physicsEx);
+                    return null;
+                }
+                
+                if (nearbyColliders == null)
+                {
+                    return null;
+                }
 
                 List<LandVehicle> nearbyVehicles = new List<LandVehicle>();
 
                 foreach (Collider col in nearbyColliders)
                 {
-                    LandVehicle vehicle = col.GetComponentInParent<LandVehicle>();
-                    if (vehicle != null && vehicle.IsPlayerOwned && !nearbyVehicles.Contains(vehicle))
+                    // IL2CPP safe null checks
+                    if (col == null || col.gameObject == null) continue;
+                    
+                    LandVehicle vehicle = null;
+                    try
                     {
-                        nearbyVehicles.Add(vehicle);
+                        vehicle = col.GetComponentInParent<LandVehicle>();
+                    }
+                    catch (Exception getCompEx)
+                    {
+                        ModLogger.Debug($"Error getting LandVehicle component: {getCompEx.Message}");
+                        continue;
+                    }
+                    
+                    // More defensive IL2CPP null checking and property access
+                    if (vehicle != null && vehicle.gameObject != null)
+                    {
+                        try
+                        {
+                            // Check if this vehicle is player owned and not already in list
+                            if (vehicle.IsPlayerOwned && !nearbyVehicles.Contains(vehicle))
+                            {
+                                nearbyVehicles.Add(vehicle);
+                            }
+                        }
+                        catch (Exception propEx)
+                        {
+                            // Skip this vehicle if property access fails in IL2CPP
+                            ModLogger.Debug($"Skipping vehicle due to property access error: {propEx.Message}");
+                            continue;
+                        }
                     }
                 }
 
                 // Return the closest owned vehicle
                 if (nearbyVehicles.Count > 0)
                 {
-                    if (Vector3.Distance(transform.position, nearbyVehicles[0].transform.position) > maxInteractionDistance)
+                    try
                     {
-                        return null;
+                        var closestVehicle = nearbyVehicles.OrderBy(v => Vector3.Distance(transform.position, v.transform.position)).First();
+                        
+                        if (Vector3.Distance(transform.position, closestVehicle.transform.position) <= maxInteractionDistance)
+                        {
+                            return closestVehicle;
+                        }
                     }
-                    return nearbyVehicles.OrderBy(v => Vector3.Distance(transform.position, v.transform.position)).First();
+                    catch (Exception linqEx)
+                    {
+                        ModLogger.Error("Error processing vehicle list", linqEx);
+                    }
                 }
 
                 return null;
@@ -459,7 +638,7 @@ namespace S1FuelMod.Systems
 
             //float finalPrice = (basePrice + (basePrice * time) * tierMultiplier);
             pricePerLiter = finalPrice;
-            ModLogger.Debug($"Setting fuel price based on time: {basePrice} {time:F2} and {tierMultiplier} multiplier to {finalPrice:F2}");
+            // ModLogger.Debug($"Setting fuel price based on time: {basePrice} {time:F2} and {tierMultiplier} multiplier to {finalPrice:F2}");
         }
 
         /// <summary>

@@ -1,8 +1,13 @@
-﻿using UnityEngine;
+#if MONO
 using ScheduleOne.Vehicles;
 using ScheduleOne.DevUtilities;
+#else
+using Il2CppScheduleOne.Vehicles;
+using Il2CppScheduleOne.DevUtilities;
+#endif
 using S1FuelMod.Utils;
 using S1FuelMod.Networking;
+using UnityEngine;
 
 namespace S1FuelMod.Systems
 {

@@ -1,17 +1,33 @@
 ﻿using HarmonyLib;
-using Newtonsoft.Json.Linq;
 using S1FuelMod.Systems;
 using S1FuelMod.Utils;
+#if MONO
+using Newtonsoft.Json.Linq;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.Persistence.Datas;
+using ScheduleOne.Persistence.Loaders;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Vehicles;
+#else
+using Il2CppNewtonsoft.Json.Linq;
+using Il2CppScheduleOne.DevUtilities;
+using Il2CppScheduleOne.Persistence.Datas;
+using Il2CppScheduleOne.Persistence.Loaders;
+using Il2CppScheduleOne.PlayerScripts;
+using Il2CppScheduleOne.Vehicles;
+#endif
 using UnityEngine;
 
 namespace S1FuelMod.Integrations
 {
     /// <summary>
     /// Harmony patches for integrating with Schedule I's vehicle system
+    /// 
+    /// IL2CPP Compatibility Notes:
+    /// - JSON parsing uses explicit token type checking instead of "as" casting
+    /// - JArray/JObject casting is handled differently for IL2CPP vs Mono
+    /// - All JSON operations include try-catch blocks for error handling
+    /// - FuelVehicleData serialization uses field injection rather than inheritance
     /// </summary>
     [HarmonyPatch]
     public static class HarmonyPatches
@@ -203,17 +219,76 @@ namespace S1FuelMod.Integrations
                     return;
 
                 var root = JObject.Parse(__result);
-                var vehicles = root["Vehicles"] as JArray;
+                
+                // Get vehicles array in a way that works with both Mono and IL2CPP
+                JToken vehiclesToken;
+                if (!root.TryGetValue("Vehicles", out vehiclesToken))
+                    return;
+
+                JArray vehicles = null;
+                bool vehiclesNeedsReplacement = false;
+                try
+                {
+                    if (vehiclesToken is JArray directArray)
+                    {
+                        vehicles = directArray;
+                    }
+                    else if (vehiclesToken.Type == JTokenType.Array)
+                    {
+#if MONO
+                        vehicles = vehiclesToken as JArray;
+#else
+                        // In IL2CPP, we need to create a new array and replace it back
+                        vehicles = JArray.Parse(vehiclesToken.ToString());
+                        vehiclesNeedsReplacement = true;
+                        ModLogger.FuelDebug("GetSaveString: IL2CPP - Created disconnected vehicles array, will replace back");
+#endif
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ModLogger.Error($"GetSaveString: Error parsing vehicles array: {ex.Message}");
+                    return;
+                }
+
                 if (vehicles == null)
                     return;
 
                 bool anyFuelDataAdded = false;
-                foreach (var vehToken in vehicles)
+                for (int i = 0; i < vehicles.Count; i++)
                 {
-                    if (vehToken is not JObject vehObj)
+                    var vehToken = vehicles[i];
+                    JObject vehObj = null;
+                    bool needsReplacement = false;
+                    
+                    try
+                    {
+                        if (vehToken is JObject directObject)
+                        {
+                            vehObj = directObject;
+                        }
+                        else if (vehToken.Type == JTokenType.Object)
+                        {
+#if MONO
+                            vehObj = vehToken as JObject;
+#else
+                            // In IL2CPP, we need to create a new object and replace it back
+                            vehObj = JObject.Parse(vehToken.ToString());
+                            needsReplacement = true;
+                            ModLogger.FuelDebug($"GetSaveString: IL2CPP - Created disconnected vehicle object {i}, will replace back");
+#endif
+                        }
+                        
+                        if (vehObj == null)
+                            continue;
+                    }
+                    catch (Exception ex)
+                    {
+                        ModLogger.Error($"GetSaveString: Error parsing vehicle {i}: {ex.Message}");
                         continue;
+                    }
 
-                    var guid = vehObj.Value<string>("GUID");
+                    var guid = vehObj.TryGetValue("GUID", out var guidTok) ? (string)guidTok : null;
                     if (string.IsNullOrEmpty(guid))
                         continue;
 
@@ -222,28 +297,62 @@ namespace S1FuelMod.Integrations
                         continue;
 
                     var fuelSystem = vehicle.GetComponent<VehicleFuelSystem>();
-                    FuelData fuelData = fuelSystem?.GetFuelData() ?? new FuelData
+                    float currentLevel, maxCapacity, consumptionRate;
+                    if (fuelSystem != null)
                     {
-                        CurrentFuelLevel = _modInstance.DefaultFuelCapacity * 0.75f,
-                        MaxFuelCapacity = _modInstance.DefaultFuelCapacity,
-                        FuelConsumptionRate = Constants.Fuel.BASE_CONSUMPTION_RATE
-                    };
+#if MONO
+                        FuelData fuelData = fuelSystem.GetFuelData();
+                        currentLevel = fuelData.CurrentFuelLevel;
+                        maxCapacity = fuelData.MaxFuelCapacity;
+                        consumptionRate = fuelData.FuelConsumptionRate;
+#else
+                        fuelSystem.GetFuelDataValues(out currentLevel, out maxCapacity, out consumptionRate);
+#endif
+                    }
+                    else
+                    {
+                        currentLevel = _modInstance.DefaultFuelCapacity * 0.75f;
+                        maxCapacity = _modInstance.DefaultFuelCapacity;
+                        consumptionRate = Constants.Fuel.BASE_CONSUMPTION_RATE;
+                    }
 
                     // Stamp type for readability
                     vehObj["DataType"] = "FuelVehicleData";
                     // Inject fields
-                    vehObj["CurrentFuelLevel"] = fuelData.CurrentFuelLevel;
-                    vehObj["MaxFuelCapacity"] = fuelData.MaxFuelCapacity;
-                    vehObj["FuelConsumptionRate"] = fuelData.FuelConsumptionRate;
+                    vehObj["CurrentFuelLevel"] = currentLevel;
+                    vehObj["MaxFuelCapacity"] = maxCapacity;
+                    vehObj["FuelConsumptionRate"] = consumptionRate;
                     vehObj["FuelDataVersion"] = 1;
                     anyFuelDataAdded = true;
 
-                    ModLogger.FuelDebug($"GetSaveString: Injected fuel data for vehicle {guid.Substring(0, 8)}... - {fuelData.CurrentFuelLevel:F1}L/{fuelData.MaxFuelCapacity:F1}L");
+#if !MONO
+                    // In IL2CPP, we need to replace the modified object back into the vehicles array
+                    if (needsReplacement)
+                    {
+                        vehicles[i] = vehObj;
+                        ModLogger.FuelDebug($"GetSaveString: IL2CPP - Replaced vehicle object {i} back into vehicles array");
+                    }
+#endif
+
+                    ModLogger.FuelDebug($"GetSaveString: Injected fuel data for vehicle {guid.Substring(0, 8)}... - {currentLevel:F1}L/{maxCapacity:F1}L");
                 }
 
                 if (anyFuelDataAdded)
                 {
+#if !MONO
+                    // In IL2CPP, we need to replace the vehicles array back into the root object
+                    if (vehiclesNeedsReplacement)
+                    {
+                        root["Vehicles"] = vehicles;
+                        ModLogger.FuelDebug("GetSaveString: IL2CPP - Replaced vehicles array back into root object");
+                    }
+#endif
+
+#if MONO
                     __result = root.ToString(Newtonsoft.Json.Formatting.Indented);
+#else
+                    __result = root.ToString(Il2CppNewtonsoft.Json.Formatting.Indented);
+#endif
                 }
             }
             catch (Exception ex)
@@ -312,11 +421,11 @@ namespace S1FuelMod.Integrations
                 if (fuelSystem == null)
                     return;
 
-                ModLogger.FuelDebug($"Loading fuel data for vehicle {__instance.GUID.ToString().Substring(0, 8)}...");
+                ModLogger.FuelDebug($"LandVehicle_Load_Postfix: Loading fuel data for vehicle {__instance.GUID.ToString().Substring(0, 8)}...");
 
                 // Check if the vehicle data contains fuel information
+#if MONO
                 FuelData? fuelData = FuelVehicleData.TryGetFuelData(data);
-
                 if (fuelData != null)
                 {
                     // Apply loaded fuel data
@@ -325,14 +434,16 @@ namespace S1FuelMod.Integrations
                 }
                 else
                 {
+                    ModLogger.FuelDebug($"LandVehicle_Load_Postfix: No fuel data found in VehicleData for {__instance.GUID.ToString().Substring(0, 8)}...");
                     // No saved fuel data found - set a realistic default level for vehicles saved before the mod
+                    // But delay this so VehiclesLoader_Load_Postfix has a chance to load the fuel data from JSON
                     if (fuelSystem.CurrentFuelLevel == fuelSystem.MaxFuelCapacity)
                     {
-                        float randomFuelLevel = UnityEngine.Random.Range(0.2f, 1.0f) * fuelSystem.MaxFuelCapacity;
-                        fuelSystem.SetFuelLevel(randomFuelLevel);
-                        ModLogger.FuelDebug($"No saved fuel data - set random fuel level: {randomFuelLevel:F1}L");
+                        ModLogger.FuelDebug($"LandVehicle_Load_Postfix: Vehicle at max fuel, will apply random level after VehiclesLoader processes");
+                        // We'll set this in VehiclesLoader_Load_Postfix if no fuel data is found there
                     }
                 }
+#endif
             }
             catch (Exception ex)
             {
@@ -343,7 +454,7 @@ namespace S1FuelMod.Integrations
         /// <summary>
         /// Patch VehiclesLoader.Load to read fuel data back from JSON and apply to spawned vehicles
         /// </summary>
-        [HarmonyPatch(typeof(ScheduleOne.Persistence.Loaders.VehiclesLoader), "Load")]
+        [HarmonyPatch(typeof(VehiclesLoader), "Load")]
         [HarmonyPostfix]
         public static void VehiclesLoader_Load_Postfix(string mainPath)
         {
@@ -352,50 +463,217 @@ namespace S1FuelMod.Integrations
                 if (_modInstance?.EnableFuelSystem != true)
                     return;
 
+                ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Processing {mainPath}");
+#if MONO
+                ModLogger.FuelDebug("VehiclesLoader_Load_Postfix: Running on Mono");
+#else
+                ModLogger.FuelDebug("VehiclesLoader_Load_Postfix: Running on IL2CPP");
+#endif
+
                 // Determine actual file path (Loader.TryLoadFile appends .json by default)
                 string jsonPath = File.Exists(mainPath) ? mainPath : mainPath + ".json";
+                ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Checking mainPath exists: {File.Exists(mainPath)}");
+                ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Checking jsonPath exists: {File.Exists(jsonPath)}");
+                ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Final jsonPath: {jsonPath}");
+                
                 if (!File.Exists(jsonPath))
-                    return;
+                {
+                    ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: JSON file not found: {jsonPath}");
+                    
+                    // Check if it's a directory and list files in it
+                    if (Directory.Exists(mainPath))
+                    {
+                        var files = Directory.GetFiles(mainPath, "*.json");
+                        ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Directory exists, JSON files found: {string.Join(", ", files)}");
+                        
+                        // Try to find a file that contains vehicle data
+                        foreach (var file in files)
+                        {
+                            try
+                            {
+                                var fileContents = File.ReadAllText(file);
+                                if (fileContents.Contains("\"Vehicles\"") && fileContents.Contains("FuelVehicleData"))
+                                {
+                                    ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Found potential fuel data file: {file}");
+                                    jsonPath = file;
+                                    break;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Error reading file {file}: {ex.Message}");
+                            }
+                        }
+                        
+                        if (!File.Exists(jsonPath))
+                        {
+                            ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: No suitable JSON file found in directory");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
 
                 string contents = File.ReadAllText(jsonPath);
+                ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: File contents (first 500 chars): {contents.Substring(0, Math.Min(500, contents.Length))}");
+                
                 var root = JObject.Parse(contents);
-                var vehicles = root["Vehicles"] as JArray;
-                if (vehicles == null)
-                    return;
 
-                foreach (var vehToken in vehicles)
+                // More robust way to get vehicles array that works with both Mono and IL2CPP
+                JToken vehiclesToken;
+                if (!root.TryGetValue("Vehicles", out vehiclesToken))
                 {
-                    if (vehToken is not JObject vehObj)
-                        continue;
+                    ModLogger.FuelDebug("VehiclesLoader_Load_Postfix: No Vehicles property found in JSON");
+                    return;
+                }
 
-                    string guid = vehObj.Value<string>("GUID") ?? string.Empty;
-                    if (string.IsNullOrEmpty(guid))
+                // Handle both JArray and generic JToken for IL2CPP compatibility
+                JArray vehicles = null;
+                try
+                {
+                    if (vehiclesToken is JArray directArray)
+                    {
+                        vehicles = directArray;
+                        ModLogger.FuelDebug("VehiclesLoader_Load_Postfix: Got vehicles as direct JArray");
+                    }
+                    else if (vehiclesToken.Type == JTokenType.Array)
+                    {
+                        // For IL2CPP, try to parse as JArray
+#if MONO
+                        vehicles = vehiclesToken as JArray;
+#else
+                        vehicles = JArray.Parse(vehiclesToken.ToString());
+#endif
+                        ModLogger.FuelDebug("VehiclesLoader_Load_Postfix: Converted vehicles token to JArray");
+                    }
+                    else
+                    {
+                        ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Vehicles token is not an array. Type: {vehiclesToken.Type}, Value: {vehiclesToken}");
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ModLogger.Error($"VehiclesLoader_Load_Postfix: Error parsing vehicles array: {ex.Message}");
+                    return;
+                }
+
+                if (vehicles == null)
+                {
+                    ModLogger.FuelDebug("VehiclesLoader_Load_Postfix: Failed to get vehicles array");
+                    return;
+                }
+
+                ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Found {vehicles.Count} vehicles in JSON");
+
+                // Get all spawned vehicles to apply fuel data to
+                var allSpawnedVehicles = new List<LandVehicle>();
+                if (NetworkSingleton<VehicleManager>.InstanceExists)
+                {
+                    foreach (LandVehicle vehicle in NetworkSingleton<VehicleManager>.Instance.AllVehicles)
+                    {
+                        if (vehicle != null)
+                            allSpawnedVehicles.Add(vehicle);
+                    }
+                }
+
+                for (int i = 0; i < vehicles.Count; i++)
+                {
+                    var vehToken = vehicles[i];
+                    JObject vehObj = null;
+                    
+                    // Handle JObject casting for both Mono and IL2CPP
+                    try
+                    {
+                        if (vehToken is JObject directObject)
+                        {
+                            vehObj = directObject;
+                        }
+                        else if (vehToken.Type == JTokenType.Object)
+                        {
+#if MONO
+                            vehObj = vehToken as JObject;
+#else
+                            vehObj = JObject.Parse(vehToken.ToString());
+#endif
+                        }
+                        
+                        if (vehObj == null)
+                        {
+                            ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Vehicle {i} is not a JObject. Type: {vehToken.Type}");
+                            continue;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ModLogger.Error($"VehiclesLoader_Load_Postfix: Error parsing vehicle {i}: {ex.Message}");
                         continue;
+                    }
+
+                    string guid = vehObj.TryGetValue("GUID", out var guidTok2) ? (string)guidTok2 ?? string.Empty : string.Empty;
+                    if (string.IsNullOrEmpty(guid))
+                    {
+                        ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Vehicle {i} has no GUID");
+                        continue;
+                    }
+
+                    ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Processing vehicle {guid.Substring(0, 8)}...");
 
                     // Read fuel fields if present
                     if (!vehObj.TryGetValue("CurrentFuelLevel", out var curTok))
+                    {
+                        ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Vehicle {guid.Substring(0, 8)}... has no CurrentFuelLevel field");
                         continue;
+                    }
 
-                    float current = curTok.Value<float>();
-                    float max = vehObj.Value<float?>("MaxFuelCapacity") ?? _modInstance.DefaultFuelCapacity;
-                    float rate = vehObj.Value<float?>("FuelConsumptionRate") ?? Constants.Fuel.BASE_CONSUMPTION_RATE;
+                    float current = (float)curTok;
+                    float max = vehObj.TryGetValue("MaxFuelCapacity", out var maxTok) ? (float)maxTok : _modInstance.DefaultFuelCapacity;
+                    float rate = vehObj.TryGetValue("FuelConsumptionRate", out var rateTok) ? (float)rateTok : Constants.Fuel.BASE_CONSUMPTION_RATE;
+
+                    ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Vehicle {guid.Substring(0, 8)}... found fuel data: {current:F1}L/{max:F1}L");
 
                     // Find spawned vehicle and apply
                     LandVehicle? vehicle = FindVehicleByGuid(guid);
                     if (vehicle == null)
+                    {
+                        ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Vehicle {guid.Substring(0, 8)}... not found in scene");
                         continue;
+                    }
 
                     var fuelManager = _modInstance.GetFuelSystemManager();
                     var fuelSystem = fuelManager?.AddFuelSystemToVehicle(vehicle);
                     if (fuelSystem == null)
+                    {
+                        ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Vehicle {guid.Substring(0, 8)}... could not get fuel system");
                         continue;
+                    }
 
                     fuelSystem.SetMaxCapacity(max);
                     fuelSystem.SetFuelLevel(current);
                     // Update base consumption (if you want this persisted)
                     // We don't have setter, but LoadFuelData covers it if needed
 
-                    ModLogger.FuelDebug($"VehiclesLoader: Applied saved fuel to {guid.Substring(0, 8)}... {current:F1}/{max:F1}L");
+                    ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Applied saved fuel to {guid.Substring(0, 8)}... {current:F1}/{max:F1}L");
+                    
+                    // Remove this vehicle from the list so we know we processed it
+                    allSpawnedVehicles.RemoveAll(v => v.GUID.ToString() == guid);
+                }
+
+                // Handle any remaining vehicles that didn't have fuel data in the JSON
+                foreach (var vehicle in allSpawnedVehicles)
+                {
+                    var fuelManager = _modInstance.GetFuelSystemManager();
+                    var fuelSystem = fuelManager?.GetFuelSystem(vehicle);
+                    
+                    if (fuelSystem != null && fuelSystem.CurrentFuelLevel == fuelSystem.MaxFuelCapacity)
+                    {
+                        float randomFuelLevel = UnityEngine.Random.Range(0.2f, 1.0f) * fuelSystem.MaxFuelCapacity;
+                        fuelSystem.SetFuelLevel(randomFuelLevel);
+                        ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: No saved fuel data for {vehicle.GUID.ToString().Substring(0, 8)}... - set random fuel level: {randomFuelLevel:F1}L");
+                    }
                 }
             }
             catch (Exception ex)
