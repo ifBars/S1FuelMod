@@ -53,6 +53,9 @@ namespace S1FuelMod.Networking
 
         // One-shot flag to request snapshot after scene/lobby ready when this client is not host
         private bool _snapshotRequested;
+        
+        // Store pending snapshot data for vehicles that haven't registered yet
+        private readonly Dictionary<string, PendingFuelData> _pendingSnapshotData = new Dictionary<string, PendingFuelData>();
 
         internal void Initialize()
         {
@@ -99,6 +102,7 @@ namespace S1FuelMod.Networking
                 _sessionRequestCb?.Dispose();
                 _sessionFailCb?.Dispose();
                 _trackedFuelSystems.Clear();
+                _pendingSnapshotData.Clear();
                 // Old throttling dictionaries removed
                 // Old throttling dictionaries removed
             }
@@ -169,6 +173,26 @@ namespace S1FuelMod.Networking
             if (_trackedFuelSystems.ContainsKey(networkId)) return;
             _trackedFuelSystems[networkId] = fuelSystem;
             
+            // Check for pending snapshot data and apply it
+            if (_pendingSnapshotData.TryGetValue(networkId, out var pendingData))
+            {
+                fuelSystem.SetMaxCapacity(Mathf.Max(1f, pendingData.MaxCapacity));
+                fuelSystem.SetFuelLevel(Mathf.Clamp(pendingData.FuelLevel, 0f, fuelSystem.MaxFuelCapacity));
+                
+                // Update echo suppression for NetworkID
+                _lastNetLevel[networkId] = fuelSystem.CurrentFuelLevel;
+                _lastNetTime[networkId] = pendingData.ReceivedTime;
+                
+                // Initialize last sent values to prevent immediate sending of these values back
+                _lastSentLevel[networkId] = fuelSystem.CurrentFuelLevel;
+                _lastSentTime[networkId] = Time.time;
+                
+                // Remove from pending data
+                _pendingSnapshotData.Remove(networkId);
+                
+                ModLogger.Debug($"FuelNetwork: Applied pending snapshot data to NetworkID:{networkId} - Level: {pendingData.FuelLevel:F2}L, MaxCapacity: {pendingData.MaxCapacity:F2}L");
+            }
+            
             ModLogger.Info($"FuelNetwork: Registered fuel system for vehicle NetworkID:{networkId} (GUID:{fuelSystem.VehicleGUID?.Substring(0, 8)}...)");
         }
 
@@ -183,6 +207,7 @@ namespace S1FuelMod.Networking
             _lastSentTime.Remove(networkId);
             _lastNetLevel.Remove(networkId);
             _lastNetTime.Remove(networkId);
+            _pendingSnapshotData.Remove(networkId);
         }
 
         private void ProcessHeartbeat()
@@ -212,7 +237,21 @@ namespace S1FuelMod.Networking
                 // Always send if we've never sent for this vehicle
                 if (!_lastSentLevel.ContainsKey(networkId))
                 {
-                    shouldSend = true;
+                    // Check if we recently received network data for this vehicle (echo suppression)
+                    // If so, don't send the default values immediately
+                    if (_lastNetTime.ContainsKey(networkId) && now - _lastNetTime[networkId] < 5f)
+                    {
+                        // Suppress sending for vehicles that recently received network updates
+                        shouldSend = false;
+                        // Set the last sent values to current to prevent future sends of default values
+                        _lastSentLevel[networkId] = currentLevel;
+                        _lastSentTime[networkId] = now;
+                        ModLogger.Debug($"FuelNetwork: Suppressed initial update for NetworkID:{networkId} due to recent network data");
+                    }
+                    else
+                    {
+                        shouldSend = true;
+                    }
                 }
                 else
                 {
@@ -523,9 +562,17 @@ namespace S1FuelMod.Networking
                     }
                     else
                     {
+                        // Store pending data for vehicles that haven't registered yet
+                        _pendingSnapshotData[it.VehicleGuid] = new PendingFuelData
+                        {
+                            FuelLevel = it.FuelLevel,
+                            MaxCapacity = it.MaxCapacity,
+                            ReceivedTime = Time.time
+                        };
+                        
                         if (_trackedFuelSystems.Count > 0)
                         {
-                            ModLogger.Warning($"FuelNetwork: Snapshot vehicle NetworkID:{it.VehicleGuid} not found in tracked systems (have {_trackedFuelSystems.Count} tracked)");
+                            ModLogger.Debug($"FuelNetwork: Stored pending snapshot data for NetworkID:{it.VehicleGuid} (have {_trackedFuelSystems.Count} tracked, {_pendingSnapshotData.Count} pending)");
                         }
                     }
                 }
@@ -639,6 +686,16 @@ namespace S1FuelMod.Networking
             if (lobby == null || !lobby.IsInLobby) return CSteamID.Nil;
             return SteamMatchmaking.GetLobbyOwner(lobby.LobbySteamID);
         }
+    }
+
+    /// <summary>
+    /// Stores fuel data for vehicles that received snapshot data before their fuel systems were registered
+    /// </summary>
+    internal class PendingFuelData
+    {
+        public float FuelLevel { get; set; }
+        public float MaxCapacity { get; set; }
+        public float ReceivedTime { get; set; }
     }
 }
 
