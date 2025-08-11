@@ -670,9 +670,8 @@ namespace S1FuelMod.Integrations
                     
                     if (fuelSystem != null && fuelSystem.CurrentFuelLevel == fuelSystem.MaxFuelCapacity)
                     {
-                        float randomFuelLevel = UnityEngine.Random.Range(0.2f, 1.0f) * fuelSystem.MaxFuelCapacity;
-                        fuelSystem.SetFuelLevel(randomFuelLevel);
-                        ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: No saved fuel data for {vehicle.GUID.ToString().Substring(0, 8)}... - set random fuel level: {randomFuelLevel:F1}L");
+                        fuelSystem.SetFuelLevel(fuelSystem.MaxFuelCapacity);
+                        ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: No saved fuel data for {vehicle.GUID.ToString().Substring(0, 8)}... - set max fuel level: {fuelSystem.MaxFuelCapacity:F1}L");
                     }
                 }
             }
