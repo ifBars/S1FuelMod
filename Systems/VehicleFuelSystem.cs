@@ -245,7 +245,7 @@ namespace S1FuelMod.Systems
         /// </summary>
         private void UpdateFuelConsumption()
         {
-            if (_landVehicle == null || currentFuelLevel <= 0f) return;
+            if (_landVehicle == null || currentFuelLevel <= 0f || !_isEngineRunning) return;
 
             float deltaTime = Time.time - _lastConsumptionTime;
             _lastConsumptionTime = Time.time;
