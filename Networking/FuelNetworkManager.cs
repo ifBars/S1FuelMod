@@ -1,19 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Il2Cpp;
 using UnityEngine;
 using S1FuelMod.Systems;
 using S1FuelMod.Utils;
-using UnityEngine.Events;
 #if MONO
 using ScheduleOne.Vehicles;
 using ScheduleOne.Networking;
 using ScheduleOne.DevUtilities;
 using Steamworks;
 #else
-using Il2CppScheduleOne.Vehicles;
+using Il2Cpp;
 using Il2CppScheduleOne.Networking;
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppSteamworks;
@@ -77,8 +71,8 @@ namespace S1FuelMod.Networking
                 }
 
                 // Steam callbacks for P2P sessions
-                _sessionRequestCb = Callback<P2PSessionRequest_t>.Create((Il2CppSteamworks.Callback<Il2CppSteamworks.P2PSessionRequest_t>.DispatchDelegate)OnSessionRequest);
-                _sessionFailCb = Callback<P2PSessionConnectFail_t>.Create((Il2CppSteamworks.Callback<Il2CppSteamworks.P2PSessionConnectFail_t>.DispatchDelegate)OnSessionConnectFail);
+                _sessionRequestCb = Callback<P2PSessionRequest_t>.Create((Callback<P2PSessionRequest_t>.DispatchDelegate)OnSessionRequest);
+                _sessionFailCb = Callback<P2PSessionConnectFail_t>.Create((Callback<P2PSessionConnectFail_t>.DispatchDelegate)OnSessionConnectFail);
 
                 // Allow relay for reliability
 #if !MONO
