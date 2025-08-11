@@ -7,6 +7,7 @@ using Il2CppScheduleOne.DevUtilities;
 #endif
 using S1FuelMod.Utils;
 using S1FuelMod.Networking;
+using UnityEngine;
 
 namespace S1FuelMod.Systems
 {
