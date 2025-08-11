@@ -403,6 +403,11 @@ namespace S1FuelMod.Systems
             float fuelToAdd = refuelRate * deltaTime;
             float costForThisFuel = fuelToAdd * pricePerLiter;
 
+            if (_targetVehicle == null || _targetFuelSystem == null)
+            {
+                return;
+            }
+
             // Check if player has enough money for this fuel amount
             if (_moneyManager != null && _moneyManager.onlineBalance < costForThisFuel)
             {
@@ -431,7 +436,8 @@ namespace S1FuelMod.Systems
                 StopRefueling();
                 ShowMessage("Vehicle tank is now full!", MessageType.Success);
             }
-
+            if (_targetVehicle == null || _targetVehicle.transform.position == null)
+                return;
             // Check if vehicle moved away
             if (Vector3.Distance(transform.position, _targetVehicle.transform.position) > vehicleDetectionRadius)
             {
