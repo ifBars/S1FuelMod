@@ -38,6 +38,7 @@ namespace S1FuelMod.Systems
 
         // State tracking
         private bool _isEngineRunning = false;
+        private bool _isInVehicle = false; // Track if player is in the vehicle
         private bool _lowFuelWarningShown = false;
         private bool _criticalFuelWarningShown = false;
         private float _lastConsumptionTime = 0f;
@@ -59,6 +60,7 @@ namespace S1FuelMod.Systems
         public bool IsLowFuel => FuelPercentage <= lowFuelThreshold;
         public bool IsCriticalFuel => FuelPercentage <= criticalFuelThreshold;
         public bool IsEngineRunning => _isEngineRunning;
+        public bool IsInVehicle => _isInVehicle;
         public string VehicleGUID => _vehicleGUID;
 
         /// <summary>
@@ -276,7 +278,7 @@ namespace S1FuelMod.Systems
             if (consumptionRate > 0f)
             {
                 float fuelConsumed = (consumptionRate / 3600f) * deltaTime;
-                if (fuelConsumed > 0.001f) // Only consume if significant amount
+                if (fuelConsumed > 0.001f && _landVehicle.isOccupied) // Only consume if significant amount and player is in vehicle
                 {
                     ConsumeFuel(fuelConsumed);
                 }
