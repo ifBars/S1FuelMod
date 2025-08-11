@@ -26,13 +26,13 @@
         {
             public const bool ENABLE_FUEL_SYSTEM = true;
             public const float FUEL_CONSUMPTION_MULTIPLIER = 1.0f;
-            public const float DEFAULT_FUEL_CAPACITY = 18f;
-            public const float SHITBOX_FUEL_CAPACITY = 12f;
-            public const float VEEPER_FUEL_CAPACITY = 16f;
-            public const float BRUISER_FUEL_CAPACITY = 14f;
-            public const float DINKLER_FUEL_CAPACITY = 16f;
-            public const float HOUNDDOG_FUEL_CAPACITY = 16f;
-            public const float CHEETAH_FUEL_CAPACITY = 12f;
+            public const float DEFAULT_FUEL_CAPACITY = 40f;
+            public const float SHITBOX_FUEL_CAPACITY = 30f;
+            public const float VEEPER_FUEL_CAPACITY = 40f;
+            public const float BRUISER_FUEL_CAPACITY = 40f;
+            public const float DINKLER_FUEL_CAPACITY = 55f;
+            public const float HOUNDDOG_FUEL_CAPACITY = 35f;
+            public const float CHEETAH_FUEL_CAPACITY = 35f;
             public const bool SHOW_FUEL_GAUGE = true;
             public const bool ENABLE_DEBUG_LOGGING = true; // Enable for testing
         }
@@ -62,7 +62,7 @@
             public const float CRITICAL_FUEL_WARNING_THRESHOLD = 5f;
 
             // Fuel station settings
-            public const float REFUEL_RATE = 0.3f; // liters per second
+            public const float REFUEL_RATE = 4f; // liters per second
             public const float FUEL_PRICE_PER_LITER = 10f;
 
             // Performance effects

@@ -37,7 +37,7 @@ namespace S1FuelMod.Systems
     public class FuelStation : InteractableObject
     {
         // Fuel Station Settings
-        private float refuelRate = 10f; // liters per second
+        private float refuelRate = 40f; // liters per second
         private float pricePerLiter = 1.5f;
         private float maxInteractionDistance = 4f;
         private float vehicleDetectionRadius = 6f;
