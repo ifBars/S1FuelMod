@@ -74,7 +74,7 @@ namespace S1FuelMod.Systems
                 // Initialize fuel station
                 InitializeFuelStation();
 
-                ModLogger.Info($"FuelStation initialized at {transform.position}");
+                ModLogger.Debug($"FuelStation initialized at {transform.position}");
             }
             catch (Exception ex)
             {
@@ -348,7 +348,7 @@ namespace S1FuelMod.Systems
             // Play start sound
             PlayRefuelSound(refuelStartSound);
 
-            ModLogger.Info($"Started refueling {_targetVehicle.VehicleName} at fuel station");
+            ModLogger.Debug($"Started refueling {_targetVehicle.VehicleName} at fuel station");
             ShowMessage($"Refueling {_targetVehicle.VehicleName}...", MessageType.Info);
         }
 
@@ -369,7 +369,7 @@ namespace S1FuelMod.Systems
             {
                 ProcessPayment();
                 ShowMessage($"Refueled {_totalFuelAdded:F1}L for {MoneyManager.FormatAmount(_totalCost)}", MessageType.Success);
-                ModLogger.Info($"Completed refueling: {_totalFuelAdded:F1}L for {MoneyManager.FormatAmount(_totalCost)}");
+                ModLogger.Debug($"Completed refueling: {_totalFuelAdded:F1}L for {MoneyManager.FormatAmount(_totalCost)}");
             }
             else
             {
@@ -436,7 +436,7 @@ namespace S1FuelMod.Systems
                 StopRefueling();
                 ShowMessage("Vehicle tank is now full!", MessageType.Success);
             }
-            if (_targetVehicle == null || _targetVehicle.transform.position == null)
+            if (_targetVehicle == null || _targetVehicle.transform == null)
                 return;
             // Check if vehicle moved away
             if (Vector3.Distance(transform.position, _targetVehicle.transform.position) > vehicleDetectionRadius)
@@ -459,7 +459,7 @@ namespace S1FuelMod.Systems
 
                 _moneyManager.CreateOnlineTransaction(transactionName, -_totalCost, 1f, transactionNote);
 
-                ModLogger.Info($"Processed fuel payment: {MoneyManager.FormatAmount(_totalCost)} for {_totalFuelAdded:F1}L");
+                ModLogger.Debug($"Processed fuel payment: {MoneyManager.FormatAmount(_totalCost)} for {_totalFuelAdded:F1}L");
             }
         }
 
@@ -577,7 +577,7 @@ namespace S1FuelMod.Systems
             try
             {
                 // You can extend this to show UI messages or use the game's notification system
-                ModLogger.Info($"FuelStation: {message}");
+                ModLogger.Debug($"FuelStation: {message}");
 
                 // For now, just log the message - you could integrate with the game's UI system here
                 switch (type)

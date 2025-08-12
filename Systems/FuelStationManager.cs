@@ -24,7 +24,7 @@ namespace S1FuelMod.Systems
 
         public FuelStationManager()
         {
-            ModLogger.Info("FuelStationManager: Initializing...");
+            ModLogger.Debug("FuelStationManager: Initializing...");
 
             try
             {
@@ -32,7 +32,7 @@ namespace S1FuelMod.Systems
                 ScanForFuelStations();
                 _hasInitialized = true;
 
-                ModLogger.Info($"FuelStationManager: Initialized with {_activeFuelStations.Count} fuel stations");
+                ModLogger.Debug($"FuelStationManager: Initialized with {_activeFuelStations.Count} fuel stations");
             }
             catch (Exception ex)
             {
@@ -98,7 +98,7 @@ namespace S1FuelMod.Systems
 
                 if (stationsFound > 0)
                 {
-                    ModLogger.Info($"FuelStationManager: Found {stationsFound} Bowser objects, setup {stationsSetup} new fuel stations");
+                    ModLogger.Debug($"FuelStationManager: Found {stationsFound} Bowser objects, setup {stationsSetup} new fuel stations");
                 }
                 else
                 {
@@ -109,7 +109,7 @@ namespace S1FuelMod.Systems
                 if (_activeFuelStations.Count >= EXPECTED_FUEL_STATIONS && !_shouldStopChecking)
                 {
                     _shouldStopChecking = true;
-                    ModLogger.Info($"FuelStationManager: Found expected number of fuel stations ({EXPECTED_FUEL_STATIONS}), stopping periodic checks for performance");
+                    ModLogger.Debug($"FuelStationManager: Found expected number of fuel stations ({EXPECTED_FUEL_STATIONS}), stopping periodic checks for performance");
                 }
             }
             catch (Exception ex)
@@ -166,14 +166,14 @@ namespace S1FuelMod.Systems
 
                 if (newStationsFound > 0)
                 {
-                    ModLogger.Info($"FuelStationManager: Found and setup {newStationsFound} new fuel stations");
+                    ModLogger.Debug($"FuelStationManager: Found and setup {newStationsFound} new fuel stations");
                 }
 
                 // Check if we've found the expected number of stations and can stop checking
                 if (_activeFuelStations.Count >= EXPECTED_FUEL_STATIONS && !_shouldStopChecking)
                 {
                     _shouldStopChecking = true;
-                    ModLogger.Info($"FuelStationManager: Found expected number of fuel stations ({EXPECTED_FUEL_STATIONS}), stopping periodic checks for performance");
+                    ModLogger.Debug($"FuelStationManager: Found expected number of fuel stations ({EXPECTED_FUEL_STATIONS}), stopping periodic checks for performance");
                 }
             }
             catch (Exception ex)
@@ -218,7 +218,7 @@ namespace S1FuelMod.Systems
                 {
                     _activeFuelStations.Add(fuelStation);
 
-                    ModLogger.Info($"FuelStationManager: Setup fuel station on {parentObject.name} (parent of {bowserObject.name}) at position {parentObject.transform.position}");
+                    ModLogger.Debug($"FuelStationManager: Setup fuel station on {parentObject.name} (parent of {bowserObject.name}) at position {parentObject.transform.position}");
 
                     // Configure the fuel station based on the parent and bowser object setup
                     ConfigureFuelStation(fuelStation, parentObject, bowserObject);
@@ -356,8 +356,8 @@ namespace S1FuelMod.Systems
         /// </summary>
         public void ForceScan()
         {
-            ModLogger.Info("FuelStationManager: Forcing fuel station scan...");
-            
+            ModLogger.Debug("FuelStationManager: Forcing fuel station scan...");
+
             // Temporarily re-enable checking in case fuel stations were destroyed and new ones added
             _shouldStopChecking = false;
             
@@ -371,11 +371,11 @@ namespace S1FuelMod.Systems
         {
             try
             {
-                ModLogger.Info("FuelStationManager: Disposing...");
+                ModLogger.Debug("FuelStationManager: Disposing...");
 
                 _activeFuelStations.Clear();
 
-                ModLogger.Info("FuelStationManager: Disposed");
+                ModLogger.Debug("FuelStationManager: Disposed");
             }
             catch (Exception ex)
             {

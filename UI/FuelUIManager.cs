@@ -34,7 +34,7 @@ namespace S1FuelMod.UI
             // Find local player
             FindLocalPlayer();
 
-            ModLogger.Info("FuelUIManager: Initialized");
+            ModLogger.UIDebug("FuelUIManager: Initialized");
         }
 
         /// <summary>
@@ -405,7 +405,7 @@ namespace S1FuelMod.UI
         {
             try
             {
-                ModLogger.Info("FuelUIManager: Disposing...");
+                ModLogger.UIDebug("FuelUIManager: Disposing...");
 
                 // Unsubscribe from scene events
                 SceneManager.sceneLoaded -= (UnityAction<Scene, LoadSceneMode>)OnSceneLoaded;

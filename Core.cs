@@ -82,8 +82,6 @@ namespace S1FuelMod
 
                 ModLogger.Info("S1FuelMod initialized successfully");
                 ModLogger.Info($"Fuel System Enabled: {EnableFuelSystem}");
-                ModLogger.Info($"Fuel Consumption Multiplier: {FuelConsumptionMultiplier}x");
-                ModLogger.Info($"Default Fuel Capacity: {DefaultFuelCapacity}L");
                 ModLogger.Info($"Show Fuel Gauge: {ShowFuelGauge}");
                 ModLogger.Info("Debug Controls:");
                 ModLogger.Info("  F6 - Toggle Debug Logging (FuelDebug/UIDebug messages)");
@@ -108,12 +106,12 @@ namespace S1FuelMod
         {
             try
             {
-                ModLogger.Info($"Scene initialized: {sceneName} (index: {buildIndex})");
+                ModLogger.Debug($"Scene initialized: {sceneName} (index: {buildIndex})");
 
                 // Initialize systems when we're in the main game scene
                 if (sceneName.Contains(Constants.Game.MAIN_SCENE))
                 {
-                    ModLogger.Info("Main game scene detected, initializing fuel systems...");
+                    ModLogger.Debug("Main game scene detected, initializing fuel systems...");
                     InitializeSystems();
                 }
                 else
@@ -260,7 +258,7 @@ namespace S1FuelMod
                     "If enabled, shows detailed debug information in console"
                 );
 
-                ModLogger.Info("MelonPreferences initialized successfully");
+                ModLogger.Debug("MelonPreferences initialized successfully");
             }
             catch (Exception ex)
             {
@@ -277,27 +275,27 @@ namespace S1FuelMod
             {
                 if (!EnableFuelSystem)
                 {
-                    ModLogger.Info("Fuel system disabled via preferences");
+                    ModLogger.Debug("Fuel system disabled via preferences");
                     return;
                 }
 
                 // Initialize fuel system manager
                 _fuelSystemManager = new FuelSystemManager();
-                ModLogger.Info("Fuel system manager initialized");
+                ModLogger.Debug("Fuel system manager initialized");
 
                 // Update Harmony patches with the fuel system manager now available
                 HarmonyPatches.SetModInstance(this);
-                ModLogger.Info("Harmony patches updated with fuel systems");
+                ModLogger.Debug("Harmony patches updated with fuel systems");
 
                 // Initialize UI manager
                 _fuelUIManager = new FuelUIManager();
-                ModLogger.Info("Fuel UI manager initialized");
+                ModLogger.Debug("Fuel UI manager initialized");
 
                 // Initialize fuel station manager
                 _fuelStationManager = new FuelStationManager();
-                ModLogger.Info("Fuel station manager initialized");
+                ModLogger.Debug("Fuel station manager initialized");
 
-                ModLogger.Info("All fuel systems initialized successfully");
+                ModLogger.Debug("All fuel systems initialized successfully");
             }
             catch (Exception ex)
             {
@@ -589,7 +587,7 @@ namespace S1FuelMod
             try
             {
                 _preferencesCategory?.SaveToFile();
-                ModLogger.Info("Preferences saved successfully");
+                ModLogger.Debug("Preferences saved successfully");
             }
             catch (Exception ex)
             {

@@ -86,7 +86,7 @@ namespace S1FuelMod.Networking
 #endif
 
                 _initialized = true;
-                ModLogger.Info("FuelNetwork: Initialized P2P callbacks");
+                ModLogger.Debug("FuelNetwork: Initialized P2P callbacks");
             }
             catch (Exception ex)
             {
@@ -289,7 +289,7 @@ namespace S1FuelMod.Networking
 
             if (updatesSent > 0)
             {
-                ModLogger.Info($"FuelNetwork: Heartbeat sent {updatesSent} fuel updates (IsHost: {isHost})");
+                ModLogger.Debug($"FuelNetwork: Heartbeat sent {updatesSent} fuel updates (IsHost: {isHost})");
             }
         }
 

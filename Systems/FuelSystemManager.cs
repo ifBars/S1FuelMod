@@ -24,12 +24,12 @@ namespace S1FuelMod.Systems
 
         public FuelSystemManager()
         {
-            ModLogger.Info("FuelSystemManager: Initializing...");
+            ModLogger.Debug("FuelSystemManager: Initializing...");
             
             // Find and setup existing vehicles
             InitializeExistingVehicles();
             
-            ModLogger.Info($"FuelSystemManager: Initialized with {_vehicleFuelSystems.Count} vehicles");
+            ModLogger.Debug($"FuelSystemManager: Initialized with {_vehicleFuelSystems.Count} vehicles");
 
             // Networking
             _network.Initialize();
@@ -38,7 +38,7 @@ namespace S1FuelMod.Systems
                 _network.RegisterFuelSystem(fs);
             }
             
-            ModLogger.Info($"FuelSystemManager: Registered {_vehicleFuelSystems.Count} fuel systems with network manager");
+            ModLogger.Debug($"FuelSystemManager: Registered {_vehicleFuelSystems.Count} fuel systems with network manager");
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace S1FuelMod.Systems
                     }
                 }
 
-                ModLogger.Info($"FuelSystemManager: Found and initialized {vehicles.Length} existing vehicles");
+                ModLogger.Debug($"FuelSystemManager: Found and initialized {vehicles.Length} existing vehicles");
             }
             catch (Exception ex)
             {
@@ -162,7 +162,7 @@ namespace S1FuelMod.Systems
                 _vehicleFuelSystems[vehicleGUID] = fuelSystem;
                 _network.RegisterFuelSystem(fuelSystem);
 
-                ModLogger.Info($"FuelSystemManager: Added fuel system to {vehicle.VehicleName} ({vehicleGUID.Substring(0, 8)}...)");
+                ModLogger.Debug($"FuelSystemManager: Added fuel system to {vehicle.VehicleName} ({vehicleGUID.Substring(0, 8)}...)");
                 return fuelSystem;
             }
             catch (Exception ex)
@@ -244,7 +244,7 @@ namespace S1FuelMod.Systems
                     }
                 }
 
-                ModLogger.Info($"FuelSystemManager: Refilled {refilled} vehicles");
+                ModLogger.Debug($"FuelSystemManager: Refilled {refilled} vehicles");
             }
             catch (Exception ex)
             {
@@ -270,7 +270,7 @@ namespace S1FuelMod.Systems
                     }
                 }
 
-                ModLogger.Info($"FuelSystemManager: Drained {amount}L from {drained} vehicles");
+                ModLogger.Debug($"FuelSystemManager: Drained {amount}L from {drained} vehicles");
             }
             catch (Exception ex)
             {
@@ -300,7 +300,7 @@ namespace S1FuelMod.Systems
             try
             {
                 ModLogger.Info($"=== Fuel System Debug Info ({_vehicleFuelSystems.Count} vehicles) ===");
-                
+
                 foreach (var kvp in _vehicleFuelSystems)
                 {
                     var fuelSystem = kvp.Value;
@@ -384,14 +384,14 @@ namespace S1FuelMod.Systems
         {
             try
             {
-                ModLogger.Info("FuelSystemManager: Disposing...");
+                ModLogger.Debug("FuelSystemManager: Disposing...");
                 
                 // Clean up tracking
                 _vehicleFuelSystems.Clear();
 
                 _network.Dispose();
 
-                ModLogger.Info("FuelSystemManager: Disposed");
+                ModLogger.Debug("FuelSystemManager: Disposed");
             }
             catch (Exception ex)
             {
