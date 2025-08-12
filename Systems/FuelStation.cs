@@ -38,7 +38,7 @@ namespace S1FuelMod.Systems
     {
         // Fuel Station Settings
         private float refuelRate = 40f; // liters per second
-        private float pricePerLiter = 1.5f;
+        private float pricePerLiter = 1f;
         private float maxInteractionDistance = 4f;
         private float vehicleDetectionRadius = 6f;
 
