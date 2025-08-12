@@ -494,12 +494,22 @@ namespace S1FuelMod.UI
                 if (showWarning)
                 {
                     // Animate warning icon for critical situations
-                    if (_fuelSystem.IsCriticalFuel || _fuelSystem.IsOutOfFuel)
+                    if (_fuelSystem.IsLowFuel)
+                    {
+                        float alpha = 0.5f + 0.5f * Mathf.Sin(Time.time * 2f); // Pulsing effect
+                        Color gaugeColor = _gaugeSliderImage.color;
+                        gaugeColor.a = alpha;
+                        _gaugeSliderImage.color = gaugeColor;
+                    }
+                    else if (_fuelSystem.IsCriticalFuel || _fuelSystem.IsOutOfFuel)
                     {
                         float alpha = 0.5f + 0.5f * Mathf.Sin(Time.time * 3f); // Pulsing effect
                         Color color = _warningIcon.color;
+                        Color gaugeColor = _gaugeSliderImage.color;
                         color.a = alpha;
+                        gaugeColor.a = alpha;
                         _warningIcon.color = color;
+                        _gaugeSliderImage.color = gaugeColor;
                     }
                     else
                     {
