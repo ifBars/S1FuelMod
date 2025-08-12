@@ -63,7 +63,7 @@
 
             // Fuel station settings
             public const float REFUEL_RATE = 4f; // liters per second
-            public const float FUEL_PRICE_PER_LITER = 10f;
+            public const float FUEL_PRICE_PER_LITER = 4f;
 
             // Performance effects
             public const float ENGINE_CUTOFF_FUEL_LEVEL = 0f;

@@ -213,9 +213,9 @@ namespace S1FuelMod.Systems
                 VehicleType.Shitbox => Constants.Fuel.BASE_CONSUMPTION_RATE * 0.8f, // Efficient small engine
                 VehicleType.Veeper => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.0f, // Standard consumption
                 VehicleType.Bruiser => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.15f, // Heavy, thirsty vehicle
-                VehicleType.Dinkler => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.5f, // Heavy truck, thirsty vehicle
+                VehicleType.Dinkler => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.2f, // Heavy truck, thirsty vehicle
                 VehicleType.Hounddog => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.15f, // Performance vehicle, higher consumption
-                VehicleType.Cheetah => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.3f, // High-performance sports car, high consumption
+                VehicleType.Cheetah => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.2f, // High-performance sports car, high consumption
                 VehicleType.Other => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.0f, // Default consumption
                 _ => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.0f // Fallback for null or unknown types
             };
