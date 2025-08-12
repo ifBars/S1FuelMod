@@ -29,6 +29,7 @@ namespace S1FuelMod
 
         // MelonPreferences
         private MelonPreferences_Category? _preferencesCategory;
+        private MelonPreferences_Category? _capacityCategory;
         private MelonPreferences_Entry<bool>? _enableFuelSystem;
         private MelonPreferences_Entry<float>? _fuelConsumptionMultiplier;
         private MelonPreferences_Entry<float>? _defaultFuelCapacity;
@@ -155,6 +156,7 @@ namespace S1FuelMod
             try
             {
                 _preferencesCategory = MelonPreferences.CreateCategory(Constants.PREFERENCES_CATEGORY);
+                _capacityCategory = MelonPreferences.CreateCategory(Constants.PREFERENCES_CATEGORY+"_Capacity", "Fuel Tank Capacity");
 
                 // Core fuel system settings
                 _enableFuelSystem = _preferencesCategory.CreateEntry<bool>(
@@ -180,7 +182,7 @@ namespace S1FuelMod
                     validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
                 );
 
-                _shitboxFuelCapacity = _preferencesCategory.CreateEntry<float>(
+                _shitboxFuelCapacity = _capacityCategory.CreateEntry<float>(
                     "ShitboxFuelCapacity",
                     Constants.Defaults.SHITBOX_FUEL_CAPACITY,
                     "Shitbox Fuel Capacity (L)",
@@ -188,7 +190,7 @@ namespace S1FuelMod
                     validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
                 );
 
-                _veeperFuelCapacity = _preferencesCategory.CreateEntry<float>(
+                _veeperFuelCapacity = _capacityCategory.CreateEntry<float>(
                     "VeeperFuelCapacity",
                     Constants.Defaults.VEEPER_FUEL_CAPACITY,
                     "Veeper Fuel Capacity (L)",
@@ -196,7 +198,7 @@ namespace S1FuelMod
                     validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
                 );
 
-                _bruiserFuelCapacity = _preferencesCategory.CreateEntry<float>(
+                _bruiserFuelCapacity = _capacityCategory.CreateEntry<float>(
                     "BruiserFuelCapacity",
                     Constants.Defaults.BRUISER_FUEL_CAPACITY,
                     "Bruiser Fuel Capacity (L)",
@@ -204,7 +206,7 @@ namespace S1FuelMod
                     validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
                 );
 
-                _dinklerFuelCapacity = _preferencesCategory.CreateEntry<float>(
+                _dinklerFuelCapacity = _capacityCategory.CreateEntry<float>(
                     "DinklerFuelCapacity",
                     Constants.Defaults.DINKLER_FUEL_CAPACITY,
                     "Dinkler Fuel Capacity (L)",
@@ -212,7 +214,7 @@ namespace S1FuelMod
                     validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
                 );
 
-                _hounddogFuelCapacity = _preferencesCategory.CreateEntry<float>(
+                _hounddogFuelCapacity = _capacityCategory.CreateEntry<float>(
                     "HounddogFuelCapacity",
                     Constants.Defaults.HOUNDDOG_FUEL_CAPACITY,
                     "Hounddog Fuel Capacity (L)",
@@ -220,7 +222,7 @@ namespace S1FuelMod
                     validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
                 );
 
-                _cheetahFuelCapacity = _preferencesCategory.CreateEntry<float>(
+                _cheetahFuelCapacity = _capacityCategory.CreateEntry<float>(
                     "CheetahFuelCapacity",
                     Constants.Defaults.CHEETAH_FUEL_CAPACITY,
                     "Cheetah Fuel Capacity (L)",
