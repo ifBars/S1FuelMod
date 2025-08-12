@@ -297,31 +297,25 @@ namespace S1FuelMod.Integrations
                         continue;
 
                     var fuelSystem = vehicle.GetComponent<VehicleFuelSystem>();
-                    float currentLevel, maxCapacity, consumptionRate;
+                    float currentLevel;
                     if (fuelSystem != null)
                     {
 #if MONO
                         FuelData fuelData = fuelSystem.GetFuelData();
                         currentLevel = fuelData.CurrentFuelLevel;
-                        maxCapacity = fuelData.MaxFuelCapacity;
-                        consumptionRate = fuelData.FuelConsumptionRate;
 #else
-                        fuelSystem.GetFuelDataValues(out currentLevel, out maxCapacity, out consumptionRate);
+                        fuelSystem.GetFuelDataValues(out currentLevel);
 #endif
                     }
                     else
                     {
                         currentLevel = _modInstance.DefaultFuelCapacity * 0.75f;
-                        maxCapacity = _modInstance.DefaultFuelCapacity;
-                        consumptionRate = Constants.Fuel.BASE_CONSUMPTION_RATE;
                     }
 
                     // Stamp type for readability
                     vehObj["DataType"] = "FuelVehicleData";
                     // Inject fields
                     vehObj["CurrentFuelLevel"] = currentLevel;
-                    vehObj["MaxFuelCapacity"] = maxCapacity;
-                    vehObj["FuelConsumptionRate"] = consumptionRate;
                     vehObj["FuelDataVersion"] = 1;
                     anyFuelDataAdded = true;
 
@@ -334,7 +328,7 @@ namespace S1FuelMod.Integrations
                     }
 #endif
 
-                    ModLogger.FuelDebug($"GetSaveString: Injected fuel data for vehicle {guid.Substring(0, 8)}... - {currentLevel:F1}L/{maxCapacity:F1}L");
+                    ModLogger.FuelDebug($"GetSaveString: Injected fuel data for vehicle {guid.Substring(0, 8)}... - {currentLevel:F1}L");
                 }
 
                 if (anyFuelDataAdded)
@@ -630,10 +624,8 @@ namespace S1FuelMod.Integrations
                     }
 
                     float current = (float)curTok;
-                    float max = vehObj.TryGetValue("MaxFuelCapacity", out var maxTok) ? (float)maxTok : _modInstance.DefaultFuelCapacity;
-                    float rate = vehObj.TryGetValue("FuelConsumptionRate", out var rateTok) ? (float)rateTok : Constants.Fuel.BASE_CONSUMPTION_RATE;
 
-                    ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Vehicle {guid.Substring(0, 8)}... found fuel data: {current:F1}L/{max:F1}L");
+                    ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Vehicle {guid.Substring(0, 8)}... found fuel data: {current:F1}L");
 
                     // Find spawned vehicle and apply
                     LandVehicle? vehicle = FindVehicleByGuid(guid);
@@ -651,12 +643,12 @@ namespace S1FuelMod.Integrations
                         continue;
                     }
 
-                    fuelSystem.SetMaxCapacity(max);
+                    fuelSystem.SetMaxFuelCapacity();
                     fuelSystem.SetFuelLevel(current);
                     // Update base consumption (if you want this persisted)
                     // We don't have setter, but LoadFuelData covers it if needed
 
-                    ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Applied saved fuel to {guid.Substring(0, 8)}... {current:F1}/{max:F1}L");
+                    ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Applied saved fuel to {guid.Substring(0, 8)}... {current:F1}");
                     
                     // Remove this vehicle from the list so we know we processed it
                     allSpawnedVehicles.RemoveAll(v => v.GUID.ToString() == guid);

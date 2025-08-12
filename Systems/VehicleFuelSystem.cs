@@ -177,7 +177,7 @@ namespace S1FuelMod.Systems
         /// <summary>
         /// Set maximum fuel capacity based on vehicle type
         /// </summary>
-        private float SetMaxFuelCapacity()
+        public float SetMaxFuelCapacity()
         {
             //float newMaxCapacity = _landVehicle.vehicleName switch
             //{
@@ -200,6 +200,7 @@ namespace S1FuelMod.Systems
                 VehicleType.Other => Core.Instance.DefaultFuelCapacity,
                 _ => Core.Instance.DefaultFuelCapacity // Fallback for null or unknown types
             };
+            maxFuelCapacity = newMaxCapacity;
             return newMaxCapacity;
         }
 
@@ -214,8 +215,8 @@ namespace S1FuelMod.Systems
                 VehicleType.Veeper => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.0f, // Standard consumption
                 VehicleType.Bruiser => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.15f, // Heavy, thirsty vehicle
                 VehicleType.Dinkler => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.2f, // Heavy truck, thirsty vehicle
-                VehicleType.Hounddog => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.15f, // Performance vehicle, higher consumption
-                VehicleType.Cheetah => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.2f, // High-performance sports car, high consumption
+                VehicleType.Hounddog => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.05f, // Performance vehicle, higher consumption
+                VehicleType.Cheetah => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.05f, // High-performance sports car, high consumption
                 VehicleType.Other => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.0f, // Default consumption
                 _ => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.0f // Fallback for null or unknown types
             };
@@ -485,11 +486,9 @@ namespace S1FuelMod.Systems
         /// <param name="currentLevel">Output: current fuel level</param>
         /// <param name="maxCapacity">Output: maximum fuel capacity</param>
         /// <param name="consumptionRate">Output: fuel consumption rate</param>
-        public void GetFuelDataValues(out float currentLevel, out float maxCapacity, out float consumptionRate)
+        public void GetFuelDataValues(out float currentLevel)
         {
             currentLevel = currentFuelLevel;
-            maxCapacity = maxFuelCapacity;
-            consumptionRate = baseFuelConsumptionRate;
         }
 
         /// <summary>
@@ -498,12 +497,12 @@ namespace S1FuelMod.Systems
         /// <param name="currentLevel">Current fuel level</param>
         /// <param name="maxCapacity">Maximum fuel capacity</param>
         /// <param name="consumptionRate">Fuel consumption rate</param>
-        public void LoadFuelDataValues(float currentLevel, float maxCapacity, float consumptionRate)
+        public void LoadFuelDataValues(float currentLevel)
         {
-            maxFuelCapacity = maxCapacity;
             currentFuelLevel = currentLevel;
-            baseFuelConsumptionRate = consumptionRate;
-            
+            SetBaseFuelConsumption();
+            maxFuelCapacity = SetMaxFuelCapacity();
+
             TriggerFuelLevelChanged();
             ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... fuel data loaded");
         }
