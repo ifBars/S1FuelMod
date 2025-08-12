@@ -237,6 +237,14 @@ namespace S1FuelMod.Systems
             if (shouldBeRunning != _isEngineRunning)
             {
                 _isEngineRunning = shouldBeRunning;
+                
+                // Reset consumption timer when engine starts to prevent parasitic fuel drain
+                if (_isEngineRunning)
+                {
+                    _lastConsumptionTime = Time.time;
+                    ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... engine started, consumption timer reset");
+                }
+                
                 ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... engine state changed: {_isEngineRunning} " +
                                    $"(occupied: {_landVehicle.isOccupied}, throttle: {_landVehicle.currentThrottle:F2}, speed: {_landVehicle.speed_Kmh:F1})");
             }
