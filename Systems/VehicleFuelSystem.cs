@@ -397,6 +397,19 @@ namespace S1FuelMod.Systems
             return actualAdded;
         }
 
+        public float FullTank()
+        {
+            // Fill the tank to maximum capacity
+            float oldFuelLevel = currentFuelLevel;
+            currentFuelLevel = maxFuelCapacity;
+            if (Math.Abs(oldFuelLevel - currentFuelLevel) > 0.001f)
+            {
+                ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... tank filled to {currentFuelLevel:F1}L");
+                TriggerFuelLevelChanged();
+            }
+            return currentFuelLevel;
+        }
+
         /// <summary>
         /// Set fuel level directly
         /// </summary>

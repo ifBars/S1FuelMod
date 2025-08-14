@@ -1,6 +1,8 @@
 ﻿using HarmonyLib;
 using S1FuelMod.Systems;
 using S1FuelMod.Utils;
+using Il2CppScheduleOne.NPCs.CharacterClasses;
+
 #if MONO
 using Newtonsoft.Json.Linq;
 using ScheduleOne.DevUtilities;
@@ -696,6 +698,25 @@ namespace S1FuelMod.Integrations
             catch (Exception ex)
             {
                 ModLogger.Error("Error in LandVehicle.Update postfix", ex);
+            }
+        }
+
+        [HarmonyPatch(typeof(Marco), "RecoverVehicle")]
+        [HarmonyPostfix]
+        public static void Marco_RecoverVehicle_Postfix()
+        {
+            try
+            {
+                if (_modInstance?.EnableFuelSystem != true)
+                    return;
+                // Reset all fuel systems when recovering vehicles
+                var fuelManager = _modInstance.GetFuelSystemManager();
+                fuelManager?.GetFuelSystem(Player.Local.LastDrivenVehicle).FullTank();
+                ModLogger.FuelDebug($"{ Player.Local.LastDrivenVehicle.name } refueled due to tow");
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error in Marco.RecoverVehicle postfix", ex);
             }
         }
 
