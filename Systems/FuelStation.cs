@@ -273,7 +273,7 @@ namespace S1FuelMod.Systems
                         var interactionManager = Singleton<InteractionManager>.Instance;
                         if (interactionManager != null)
                         {
-                            interactionManager.LerpDisplayScale(0.9f);
+                            //interactionManager.LerpDisplayScale(0.9f);
                         }
                     }
                     catch (Exception ex)
@@ -320,7 +320,7 @@ namespace S1FuelMod.Systems
                     var interactionManager = Singleton<InteractionManager>.Instance;
                     if (interactionManager != null)
                     {
-                        interactionManager.LerpDisplayScale(1f);
+                        //interactionManager.LerpDisplayScale(1f);
                     }
                 }
                 catch (Exception ex)
