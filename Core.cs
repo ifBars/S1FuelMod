@@ -39,6 +39,7 @@ namespace S1FuelMod
         private MelonPreferences_Entry<float>? _dinklerFuelCapacity;
         private MelonPreferences_Entry<float>? _hounddogFuelCapacity;
         private MelonPreferences_Entry<float>? _cheetahFuelCapacity;
+        private MelonPreferences_Entry<float>? _hotboxFuelCapacity;
         private MelonPreferences_Entry<bool>? _showFuelGauge;
         private MelonPreferences_Entry<bool>? _enableDynamicPricing;
         private MelonPreferences_Entry<bool>? _enablePricingOnTier;
@@ -59,6 +60,7 @@ namespace S1FuelMod
         public float DinklerFuelCapacity => _dinklerFuelCapacity?.Value ?? Constants.Defaults.DINKLER_FUEL_CAPACITY;
         public float HounddogFuelCapacity => _hounddogFuelCapacity?.Value ?? Constants.Defaults.HOUNDDOG_FUEL_CAPACITY;
         public float CheetahFuelCapacity => _cheetahFuelCapacity?.Value ?? Constants.Defaults.CHEETAH_FUEL_CAPACITY;
+        public float HotboxFuelCapacity => _hotboxFuelCapacity?.Value ?? Constants.Defaults.HOTBOX_FUEL_CAPACITY; // Default to 40L if not set
         public bool ShowFuelGauge => _showFuelGauge?.Value ?? true;
         public bool EnableDynamicPricing => _enableDynamicPricing?.Value ?? true;
         public bool EnablePricingOnTier => _enablePricingOnTier?.Value ?? true;
@@ -225,6 +227,14 @@ namespace S1FuelMod
                     Constants.Defaults.CHEETAH_FUEL_CAPACITY,
                     "Cheetah Fuel Capacity (L)",
                     "Fuel capacity for the Cheetah vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _hotboxFuelCapacity = _capacityCategory.CreateEntry<float>(
+                    "HotboxFuelCapacity",
+                    Constants.Defaults.HOTBOX_FUEL_CAPACITY,
+                    "Hotbox Fuel Capacity (L)",
+                    "Fuel capacity for the Hotbox vehicle in liters",
                     validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
                 );
 

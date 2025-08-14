@@ -197,6 +197,7 @@ namespace S1FuelMod.Systems
                 VehicleType.Dinkler => Core.Instance.DinklerFuelCapacity,
                 VehicleType.Hounddog => Core.Instance.HounddogFuelCapacity,
                 VehicleType.Cheetah => Core.Instance.CheetahFuelCapacity,
+                VehicleType.Hotbox => Core.Instance.HotboxFuelCapacity,
                 VehicleType.Other => Core.Instance.DefaultFuelCapacity,
                 _ => Core.Instance.DefaultFuelCapacity // Fallback for null or unknown types
             };
@@ -212,11 +213,12 @@ namespace S1FuelMod.Systems
             float baseConsumption = _vehicleType switch
             {
                 VehicleType.Shitbox => Constants.Fuel.BASE_CONSUMPTION_RATE * 0.8f, // Efficient small engine
-                VehicleType.Veeper => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.0f, // Standard consumption
+                VehicleType.Veeper => Constants.Fuel.BASE_CONSUMPTION_RATE, // Standard consumption
                 VehicleType.Bruiser => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.15f, // Heavy, thirsty vehicle
                 VehicleType.Dinkler => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.2f, // Heavy truck, thirsty vehicle
                 VehicleType.Hounddog => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.05f, // Performance vehicle, higher consumption
                 VehicleType.Cheetah => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.05f, // High-performance sports car, high consumption
+                VehicleType.Hotbox => Constants.Fuel.BASE_CONSUMPTION_RATE, // Hybrid SUV, moderate consumption
                 VehicleType.Other => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.0f, // Default consumption
                 _ => Constants.Fuel.BASE_CONSUMPTION_RATE * 1.0f // Fallback for null or unknown types
             };
@@ -529,6 +531,9 @@ namespace S1FuelMod.Systems
                 case "Cheetah":
                     _vehicleType = VehicleType.Cheetah;
                     break;
+                case "Hotbox":
+                    _vehicleType = VehicleType.Hotbox;
+                    break;
                 default:
                     _vehicleType = VehicleType.Other;
                     break;
@@ -583,6 +588,7 @@ namespace S1FuelMod.Systems
         Dinkler,
         Hounddog,
         Cheetah,
+        Hotbox,
         Other
     }
 }

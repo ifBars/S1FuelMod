@@ -33,6 +33,7 @@
             public const float DINKLER_FUEL_CAPACITY = 55f;
             public const float HOUNDDOG_FUEL_CAPACITY = 35f;
             public const float CHEETAH_FUEL_CAPACITY = 35f;
+            public const float HOTBOX_FUEL_CAPACITY = 50f;
             public const bool SHOW_FUEL_GAUGE = true;
             public const bool ENABLE_DEBUG_LOGGING = true; // Enable for testing
         }
