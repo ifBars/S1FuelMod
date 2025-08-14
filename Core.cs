@@ -85,15 +85,7 @@ namespace S1FuelMod
                 ModLogger.Info("S1FuelMod initialized successfully");
                 ModLogger.Info($"Fuel System Enabled: {EnableFuelSystem}");
                 ModLogger.Info($"Show Fuel Gauge: {ShowFuelGauge}");
-                ModLogger.Info("Debug Controls:");
-                ModLogger.Info("  F6 - Toggle Debug Logging (FuelDebug/UIDebug messages)");
-                ModLogger.Info("  F7 - Test Fuel Consumption (5L) on Current Vehicle");
-                ModLogger.Info("  F8 - Show Current Vehicle Info");
-                ModLogger.Info("  F9 - Toggle Fuel System Debug Info");
-                ModLogger.Info("  F10 - Refill All Vehicles");
-                ModLogger.Info("  F11 - Drain All Vehicles (10L)");
-                ModLogger.Info("  F12 - Test UI Elements Directly");
-                ModLogger.Info("  F5 - Show Fuel Station Info & Force Rescan");
+                ModLogger.Info("Debug logging can be toggled in the mod preferences");
             }
             catch (Exception ex)
             {
@@ -110,7 +102,6 @@ namespace S1FuelMod
             {
                 ModLogger.Debug($"Scene initialized: {sceneName} (index: {buildIndex})");
 
-                // Initialize systems when we're in the main game scene
                 if (sceneName.Contains(Constants.Game.MAIN_SCENE))
                 {
                     ModLogger.Debug("Main game scene detected, initializing fuel systems...");
@@ -134,10 +125,6 @@ namespace S1FuelMod
         {
             try
             {
-                // Handle debug key inputs
-                HandleDebugInputs();
-
-                // Update fuel systems (also pumps networking in manager)
                 _fuelSystemManager?.Update();
                 _fuelUIManager?.Update();
                 _fuelStationManager?.Update();
@@ -158,7 +145,6 @@ namespace S1FuelMod
                 _preferencesCategory = MelonPreferences.CreateCategory(Constants.PREFERENCES_CATEGORY);
                 _capacityCategory = MelonPreferences.CreateCategory(Constants.PREFERENCES_CATEGORY+"_Capacity", "Fuel Tank Capacity");
 
-                // Core fuel system settings
                 _enableFuelSystem = _preferencesCategory.CreateEntry<bool>(
                     "EnableFuelSystem",
                     Constants.Defaults.ENABLE_FUEL_SYSTEM,
@@ -238,7 +224,6 @@ namespace S1FuelMod
                     validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
                 );
 
-                // UI settings
                 _showFuelGauge = _preferencesCategory.CreateEntry<bool>(
                     "ShowFuelGauge",
                     Constants.Defaults.SHOW_FUEL_GAUGE,
@@ -260,7 +245,6 @@ namespace S1FuelMod
                     "If enabled, fuel prices will be inflated based on the player's current tier"
                 );
 
-                // Debug settings
                 _enableDebugLogging = _preferencesCategory.CreateEntry<bool>(
                     "EnableDebugLogging",
                     Constants.Defaults.ENABLE_DEBUG_LOGGING,
@@ -314,91 +298,9 @@ namespace S1FuelMod
         }
 
         /// <summary>
-        /// Handle debug key inputs
-        /// </summary>
-        private void HandleDebugInputs()
-        {
-            try
-            {
-                if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F9))
-                {
-                    _fuelSystemManager?.ToggleDebugInfo();
-                }
-
-                if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F10))
-                {
-                    _fuelSystemManager?.RefillAllVehicles();
-                    ModLogger.Info("All vehicles refilled");
-                }
-
-                if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F11))
-                {
-                    _fuelSystemManager?.DrainAllVehicles(10f);
-                    ModLogger.Info("All vehicles drained by 10L");
-                }
-
-                if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F8))
-                {
-                    ShowCurrentVehicleInfo();
-                }
-
-                if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F7))
-                {
-                    TestCurrentVehicleFuelConsumption();
-                }
-
-                if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F6))
-                {
-                    ToggleDebugLogging();
-                }
-
-                if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F12))
-                {
-                    TestUIElementsDirectly();
-                }
-
-                if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F5))
-                {
-                    ShowFuelStationInfo();
-                }
-            }
-            catch (Exception ex)
-            {
-                ModLogger.Error("Error handling debug inputs", ex);
-            }
-        }
-
-        /// <summary>
-        /// Test UI elements directly by manually setting values
-        /// </summary>
-        private void TestUIElementsDirectly()
-        {
-            try
-            {
-                var localPlayer = Player.Local;
-                if (localPlayer?.CurrentVehicle == null)
-                {
-                    ModLogger.Info("F12: Player not in vehicle");
-                    return;
-                }
-
-                var fuelUIManager = GetFuelUIManager();
-                if (fuelUIManager != null)
-                {
-                    var stats = fuelUIManager.GetStatistics();
-                    ModLogger.Info($"F12: UI Stats - Gauges: {stats.TotalGauges}, Visible: {stats.VisibleGauges}, Vehicle: {stats.CurrentVehicleName}");
-                }
-            }
-            catch (Exception ex)
-            {
-                ModLogger.Error("F12: Error testing UI elements", ex);
-            }
-        }
-
-        /// <summary>
         /// Toggle debug logging on/off
         /// </summary>
-        private void ToggleDebugLogging()
+        public void ToggleDebugLogging()
         {
             try
             {
@@ -409,11 +311,11 @@ namespace S1FuelMod
 
                     if (_enableDebugLogging.Value)
                     {
-                        ModLogger.Info("F6 Debug: Debug logging is now ON - you should see [FUEL] and [UI] messages");
+                        ModLogger.Info("Debug logging is now ON - you should see [FUEL] and [UI] messages");
                     }
                     else
                     {
-                        ModLogger.Info("F6 Debug: Debug logging is now OFF");
+                        ModLogger.Info("Debug logging is now OFF");
                     }
                 }
             }
@@ -423,149 +325,7 @@ namespace S1FuelMod
             }
         }
 
-        /// <summary>
-        /// Test fuel consumption on current vehicle (for debugging UI updates)
-        /// </summary>
-        private void TestCurrentVehicleFuelConsumption()
-        {
-            try
-            {
-                var localPlayer = Player.Local;
-                var vehicle = localPlayer?.CurrentVehicle?.GetComponent<LandVehicle>();
-                
-                if (vehicle == null)
-                {
-                    ModLogger.Info("F7: No vehicle found - player is not in a land vehicle");
-                    return;
-                }
-                
-                var fuelSystem = _fuelSystemManager?.GetFuelSystem(vehicle.GUID.ToString());
 
-                if (fuelSystem == null)
-                {
-                    ModLogger.Info("F7: No fuel system found");
-                    return;
-                }
-
-                float beforeFuel = fuelSystem.CurrentFuelLevel;
-                fuelSystem.ConsumeFuel(5f);
-                ModLogger.Info($"F7: Fuel test {beforeFuel:F1}L → {fuelSystem.CurrentFuelLevel:F1}L");
-            }
-            catch (Exception ex)
-            {
-                ModLogger.Error("F7: Error testing fuel consumption", ex);
-            }
-        }
-
-        /// <summary>
-        /// Show fuel station information and force rescan
-        /// </summary>
-        private void ShowFuelStationInfo()
-        {
-            try
-            {
-                var fuelStationManager = GetFuelStationManager();
-                if (fuelStationManager == null)
-                {
-                    ModLogger.Info("F5: No fuel station manager available");
-                    return;
-                }
-
-                // Force a rescan
-                fuelStationManager.ForceScan();
-
-                // Get and display statistics
-                var stats = fuelStationManager.GetStatistics();
-                var activeFuelStations = fuelStationManager.GetActiveFuelStations();
-
-                ModLogger.Info("=== Fuel Station Info ===");
-                ModLogger.Info($"Total Stations: {stats.TotalStations}");
-                ModLogger.Info($"Active Stations: {stats.ActiveStations}");
-                ModLogger.Info($"Inactive Stations: {stats.InactiveStations}");
-
-                if (activeFuelStations.Count > 0)
-                {
-                    ModLogger.Info("Active Fuel Stations:");
-                    for (int i = 0; i < activeFuelStations.Count && i < 10; i++) // Limit to first 10
-                    {
-                        var station = activeFuelStations[i];
-                        if (station != null && station.gameObject != null)
-                        {
-                            ModLogger.Info($"  {i + 1}. {station.gameObject.name} at {station.transform.position}");
-                        }
-                    }
-
-                    if (activeFuelStations.Count > 10)
-                    {
-                        ModLogger.Info($"  ... and {activeFuelStations.Count - 10} more stations");
-                    }
-                }
-                else
-                {
-                    ModLogger.Info("No active fuel stations found!");
-                    ModLogger.Info("Make sure there are GameObjects named 'Bowser (EMC Merge)' or 'Bowser  (EMC Merge)' in the scene");
-                }
-
-                ModLogger.Info("=== End Fuel Station Info ===");
-            }
-            catch (Exception ex)
-            {
-                ModLogger.Error("F5: Error showing fuel station info", ex);
-            }
-        }
-
-        /// <summary>
-        /// Show information about the current vehicle player is in
-        /// </summary>
-        private void ShowCurrentVehicleInfo()
-        {
-            try
-            {
-                var localPlayer = Player.Local;
-                if (localPlayer == null)
-                {
-                    ModLogger.Debug("No local player found");
-                    return;
-                }
-
-                if (localPlayer.CurrentVehicle == null)
-                {
-                    ModLogger.Debug("Player is not in a vehicle");
-                    return;
-                }
-
-                var vehicleNetworkObject = localPlayer.CurrentVehicle;
-                var vehicle = vehicleNetworkObject.GetComponent<LandVehicle>();
-
-                if (vehicle == null)
-                {
-                    ModLogger.Info("Current vehicle is not a LandVehicle");
-                    return;
-                }
-
-                var fuelSystem = _fuelSystemManager?.GetFuelSystem(vehicle.GUID.ToString());
-                if (fuelSystem == null)
-                {
-                    ModLogger.Info($"No fuel system found for vehicle {vehicle.VehicleName} ({vehicle.GUID.ToString().Substring(0, 8)}...)");
-                    return;
-                }
-
-                ModLogger.Info("=== Current Vehicle Info ===");
-                ModLogger.Info($"Vehicle: {vehicle.VehicleName} ({vehicle.VehicleCode})");
-                ModLogger.Info($"GUID: {vehicle.GUID}");
-                ModLogger.Info($"Fuel: {fuelSystem.CurrentFuelLevel:F1}L / {fuelSystem.MaxFuelCapacity:F1}L ({fuelSystem.FuelPercentage:F1}%)");
-                ModLogger.Info($"Engine Running: {fuelSystem.IsEngineRunning}");
-                ModLogger.Info($"Occupied: {vehicle.isOccupied}");
-                ModLogger.Info($"Throttle: {vehicle.currentThrottle:F2}");
-                ModLogger.Info($"Speed: {vehicle.speed_Kmh:F1} km/h");
-                ModLogger.Info($"Warnings: {(fuelSystem.IsLowFuel ? "LOW " : "")}{(fuelSystem.IsCriticalFuel ? "CRITICAL " : "")}{(fuelSystem.IsOutOfFuel ? "EMPTY" : "")}");
-                ModLogger.Info("=== End Vehicle Info ===");
-            }
-            catch (Exception ex)
-            {
-                ModLogger.Error("Error showing current vehicle info", ex);
-            }
-        }
 
         /// <summary>
         /// Called when the mod is being unloaded
@@ -575,8 +335,6 @@ namespace S1FuelMod
             try
             {
                 ModLogger.Info("S1FuelMod shutting down...");
-
-                // Clean up systems
                 _fuelSystemManager?.Dispose();
                 _fuelUIManager?.Dispose();
                 _fuelStationManager?.Dispose();
