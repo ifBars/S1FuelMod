@@ -1,8 +1,6 @@
 ﻿using HarmonyLib;
 using S1FuelMod.Systems;
 using S1FuelMod.Utils;
-using Il2CppScheduleOne.NPCs.CharacterClasses;
-
 #if MONO
 using Newtonsoft.Json.Linq;
 using ScheduleOne.DevUtilities;
@@ -10,7 +8,9 @@ using ScheduleOne.Persistence.Datas;
 using ScheduleOne.Persistence.Loaders;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Vehicles;
+using ScheduleOne.NPCs.CharacterClasses;
 #else
+using Il2CppScheduleOne.NPCs.CharacterClasses;
 using Il2CppNewtonsoft.Json.Linq;
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.Persistence.Datas;
