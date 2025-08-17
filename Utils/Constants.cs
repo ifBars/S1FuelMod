@@ -47,6 +47,8 @@
             public const float MAX_CONSUMPTION_MULTIPLIER = 5.0f;
             public const float MIN_FUEL_CAPACITY = 10f;
             public const float MAX_FUEL_CAPACITY = 200f;
+            public const float MIN_FUEL_PRICE_PER_LITER = 0.1f;
+            public const float MAX_FUEL_PRICE_PER_LITER = 1000.0f;
         }
 
         /// <summary>

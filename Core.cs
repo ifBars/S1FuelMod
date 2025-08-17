@@ -44,6 +44,8 @@ namespace S1FuelMod
         private MelonPreferences_Entry<bool>? _enableDynamicPricing;
         private MelonPreferences_Entry<bool>? _enablePricingOnTier;
         private MelonPreferences_Entry<bool>? _enableDebugLogging;
+        private MelonPreferences_Entry<float>? _baseFuelPricePerLiter;
+        private MelonPreferences_Entry<bool>? _enableCurfewFuelTax;
 
         // Mod Systems
         private FuelSystemManager? _fuelSystemManager;
@@ -65,6 +67,8 @@ namespace S1FuelMod
         public bool EnableDynamicPricing => _enableDynamicPricing?.Value ?? true;
         public bool EnablePricingOnTier => _enablePricingOnTier?.Value ?? true;
         public bool EnableDebugLogging => _enableDebugLogging?.Value ?? false;
+        public float BaseFuelPricePerLiter => _baseFuelPricePerLiter?.Value ?? Constants.Fuel.FUEL_PRICE_PER_LITER;
+        public bool EnableCurfewFuelTax => _enableCurfewFuelTax?.Value ?? false;
 
         /// <summary>
         /// Called when the mod is being loaded
@@ -160,6 +164,14 @@ namespace S1FuelMod
                     validator: new ValueRange<float>(Constants.Constraints.MIN_CONSUMPTION_MULTIPLIER, Constants.Constraints.MAX_CONSUMPTION_MULTIPLIER)
                 );
 
+                _baseFuelPricePerLiter = _preferencesCategory.CreateEntry<float>(
+                    "BaseFuelPricePerLiter",
+                    Constants.Fuel.FUEL_PRICE_PER_LITER,
+                    "Fuel Price Per Liter ($)",
+                    "Base price per liter of fuel in dollars",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_PRICE_PER_LITER, Constants.Constraints.MAX_FUEL_PRICE_PER_LITER)
+                );
+
                 _defaultFuelCapacity = _preferencesCategory.CreateEntry<float>(
                     "DefaultFuelCapacity",
                     Constants.Defaults.DEFAULT_FUEL_CAPACITY,
@@ -243,6 +255,13 @@ namespace S1FuelMod
                     true,
                     "Enable Pricing on Tier",
                     "If enabled, fuel prices will be inflated based on the player's current tier"
+                );
+
+                _enableCurfewFuelTax = _preferencesCategory.CreateEntry<bool>(
+                    "EnableCurfewFuelTax",
+                    true,
+                    "Enable Curfew Fuel Tax",
+                    "If enabled, fuel price is doubled during curfew hours"
                 );
 
                 _enableDebugLogging = _preferencesCategory.CreateEntry<bool>(

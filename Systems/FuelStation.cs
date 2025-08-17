@@ -11,6 +11,7 @@ using ScheduleOne.Money;
 using ScheduleOne.Persistence.Datas;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Vehicles;
+using ScheduleOne.Law;
 #else
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.GameTime;
@@ -20,6 +21,7 @@ using Il2CppScheduleOne.Money;
 using Il2CppScheduleOne.Persistence.Datas;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Vehicles;
+using Il2CppScheduleOne.Law;
 using MelonLoader;
 #endif
 using UnityEngine;
@@ -608,7 +610,7 @@ namespace S1FuelMod.Systems
         /// </summary>
         private void SetFuelPrice()
         {
-            float basePrice = Constants.Fuel.FUEL_PRICE_PER_LITER;
+            float basePrice = Core.Instance?.BaseFuelPricePerLiter ?? Constants.Fuel.FUEL_PRICE_PER_LITER;
 
             if (Core.Instance?.EnableDynamicPricing != true)
             {
@@ -641,6 +643,21 @@ namespace S1FuelMod.Systems
             float finalPrice = ((Core.Instance.EnablePricingOnTier)
                 ? basePrice + (basePrice * time) * tierMultiplier
                 : basePrice);
+
+            // Apply curfew fuel tax if enabled (double price during curfew)
+            try
+            {
+#if MONO
+                bool curfewActive = NetworkSingleton<ScheduleOne.GameTime.TimeManager>.Instance.IsCurrentTimeWithinRange(CurfewManager.CURFEW_START_TIME, CurfewManager.CURFEW_END_TIME);
+#else
+                bool curfewActive = NetworkSingleton<Il2CppScheduleOne.GameTime.TimeManager>.Instance.IsCurrentTimeWithinRange(CurfewManager.CURFEW_START_TIME, CurfewManager.CURFEW_END_TIME);
+#endif
+                if (Core.Instance?.EnableCurfewFuelTax == true && curfewActive)
+                {
+                    finalPrice *= 2f;
+                }
+            }
+            catch { }
 
             //float finalPrice = (basePrice + (basePrice * time) * tierMultiplier);
             pricePerLiter = finalPrice;
