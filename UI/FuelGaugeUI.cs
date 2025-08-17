@@ -224,7 +224,11 @@ namespace S1FuelMod.UI
                 //_gaugeFill.fillAmount = 1.0f; // Start with full gauge
 
                 _gaugeSlider = fill.AddComponent<Slider>();
-                _gaugeSlider.direction = Slider.Direction.RightToLeft;
+                
+                // Check if gauge direction should be swapped
+                bool swapDirection = Core.Instance?.SwapGaugeDirection ?? false;
+                _gaugeSlider.direction = swapDirection ? Slider.Direction.LeftToRight : Slider.Direction.RightToLeft;
+                
                 _gaugeSlider.minValue = 0f;
                 _gaugeSlider.maxValue = 100f;
 
@@ -313,8 +317,22 @@ namespace S1FuelMod.UI
                 warningObj.transform.SetParent(_gaugeContainer!.transform, false);
 
                 RectTransform warningRect = warningObj.AddComponent<RectTransform>();
-                warningRect.anchorMin = new Vector2(0.85f, 0.15f);
-                warningRect.anchorMax = new Vector2(0.95f, 0.65f);
+                
+                // Check if gauge direction should be swapped and adjust warning icon position accordingly
+                bool swapDirection = Core.Instance?.SwapGaugeDirection ?? false;
+                if (swapDirection)
+                {
+                    // When gauge fills left to right, warning icon goes on the left
+                    warningRect.anchorMin = new Vector2(0.05f, 0.15f);
+                    warningRect.anchorMax = new Vector2(0.15f, 0.65f);
+                }
+                else
+                {
+                    // Default: when gauge fills right to left, warning icon goes on the right
+                    warningRect.anchorMin = new Vector2(0.85f, 0.15f);
+                    warningRect.anchorMax = new Vector2(0.95f, 0.65f);
+                }
+                
                 warningRect.offsetMin = Vector2.zero;
                 warningRect.offsetMax = Vector2.zero;
 
@@ -480,6 +498,46 @@ namespace S1FuelMod.UI
         }
 
         /// <summary>
+        /// Update the gauge direction and warning icon position based on preferences
+        /// </summary>
+        public void UpdateGaugeDirection()
+        {
+            try
+            {
+                if (_gaugeSlider == null || _warningIcon == null) return;
+
+                bool swapDirection = Core.Instance?.SwapGaugeDirection ?? false;
+                
+                // Update slider direction
+                _gaugeSlider.direction = swapDirection ? Slider.Direction.LeftToRight : Slider.Direction.RightToLeft;
+                
+                // Update warning icon position
+                RectTransform warningRect = _warningIcon.GetComponent<RectTransform>();
+                if (warningRect != null)
+                {
+                    if (swapDirection)
+                    {
+                        // When gauge fills left to right, warning icon goes on the left
+                        warningRect.anchorMin = new Vector2(0.05f, 0.15f);
+                        warningRect.anchorMax = new Vector2(0.15f, 0.65f);
+                    }
+                    else
+                    {
+                        // Default: when gauge fills right to left, warning icon goes on the right
+                        warningRect.anchorMin = new Vector2(0.85f, 0.15f);
+                        warningRect.anchorMax = new Vector2(0.95f, 0.65f);
+                    }
+                }
+                
+                ModLogger.UIDebug($"FuelGaugeUI: Gauge direction updated to {(swapDirection ? "LeftToRight" : "RightToLeft")}");
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error updating gauge direction", ex);
+            }
+        }
+
+        /// <summary>
         /// Update warning icon visibility
         /// </summary>
         private void UpdateWarningIcon()
@@ -543,6 +601,10 @@ namespace S1FuelMod.UI
                         _gaugeSliderImage.color = newColor; // Reset color
                     }
                     _isVisible = true;
+                    
+                    // Update gauge direction based on current preferences
+                    UpdateGaugeDirection();
+                    
                     UpdateDisplay();
                     ModLogger.UIDebug($"FuelGaugeUI: Shown for vehicle {_fuelSystem.VehicleGUID.Substring(0, 8)}...");
                 }

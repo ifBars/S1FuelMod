@@ -361,6 +361,28 @@ namespace S1FuelMod.UI
         }
 
         /// <summary>
+        /// Refresh all active fuel gauges to apply preference changes
+        /// </summary>
+        public void RefreshAllGauges()
+        {
+            try
+            {
+                ModLogger.UIDebug("FuelUIManager: Refreshing all fuel gauges...");
+                
+                foreach (var gauge in _activeFuelGauges.Values)
+                {
+                    gauge?.UpdateGaugeDirection();
+                }
+                
+                ModLogger.UIDebug($"FuelUIManager: Refreshed {_activeFuelGauges.Count} fuel gauges");
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error refreshing fuel gauges", ex);
+            }
+        }
+
+        /// <summary>
         /// Get statistics about active UI elements
         /// </summary>
         /// <returns>UI statistics</returns>

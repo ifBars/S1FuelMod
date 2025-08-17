@@ -46,6 +46,7 @@ namespace S1FuelMod
         private MelonPreferences_Entry<bool>? _enableDebugLogging;
         private MelonPreferences_Entry<float>? _baseFuelPricePerLiter;
         private MelonPreferences_Entry<bool>? _enableCurfewFuelTax;
+        private MelonPreferences_Entry<bool>? _swapGaugeDirection;
 
         // Mod Systems
         private FuelSystemManager? _fuelSystemManager;
@@ -69,6 +70,7 @@ namespace S1FuelMod
         public bool EnableDebugLogging => _enableDebugLogging?.Value ?? false;
         public float BaseFuelPricePerLiter => _baseFuelPricePerLiter?.Value ?? Constants.Fuel.FUEL_PRICE_PER_LITER;
         public bool EnableCurfewFuelTax => _enableCurfewFuelTax?.Value ?? false;
+        public bool SwapGaugeDirection => _swapGaugeDirection?.Value ?? false;
 
         /// <summary>
         /// Called when the mod is being loaded
@@ -89,6 +91,7 @@ namespace S1FuelMod
                 ModLogger.Info("S1FuelMod initialized successfully");
                 ModLogger.Info($"Fuel System Enabled: {EnableFuelSystem}");
                 ModLogger.Info($"Show Fuel Gauge: {ShowFuelGauge}");
+                ModLogger.Info($"Gauge Direction: {(SwapGaugeDirection ? "Left to Right" : "Right to Left")}");
                 ModLogger.Info("Debug logging can be toggled in the mod preferences");
             }
             catch (Exception ex)
@@ -271,6 +274,13 @@ namespace S1FuelMod
                     "If enabled, shows detailed debug information in console"
                 );
 
+                _swapGaugeDirection = _preferencesCategory.CreateEntry<bool>(
+                    "SwapGaugeDirection",
+                    false,
+                    "Swap Gauge Direction",
+                    "If enabled, fuel gauge fills from left to right instead of right to left"
+                );
+
                 ModLogger.Debug("MelonPreferences initialized successfully");
             }
             catch (Exception ex)
@@ -404,6 +414,22 @@ namespace S1FuelMod
         public FuelStationManager? GetFuelStationManager()
         {
             return _fuelStationManager;
+        }
+
+        /// <summary>
+        /// Refresh all active fuel gauges to apply preference changes
+        /// </summary>
+        public void RefreshFuelGauges()
+        {
+            try
+            {
+                _fuelUIManager?.RefreshAllGauges();
+                ModLogger.Debug("Fuel gauges refreshed to apply preference changes");
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error refreshing fuel gauges", ex);
+            }
         }
     }
 }
