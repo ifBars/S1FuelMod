@@ -40,6 +40,17 @@ namespace S1FuelMod
         private MelonPreferences_Entry<float>? _hounddogFuelCapacity;
         private MelonPreferences_Entry<float>? _cheetahFuelCapacity;
         private MelonPreferences_Entry<float>? _hotboxFuelCapacity;
+        private MelonPreferences_Entry<float>? _bugattiTourbillonFuelCapacity;
+        private MelonPreferences_Entry<float>? _canofsoupcarFuelCapacity;
+        private MelonPreferences_Entry<float>? _cyberTruckFuelCapacity;
+        private MelonPreferences_Entry<float>? _demonFuelCapacity;
+        private MelonPreferences_Entry<float>? _driftcarFuelCapacity;
+        private MelonPreferences_Entry<float>? _gtrR34FuelCapacity;
+        private MelonPreferences_Entry<float>? _gtrR35FuelCapacity;
+        private MelonPreferences_Entry<float>? _lamborghiniVenenoFuelCapacity;
+        private MelonPreferences_Entry<float>? _rollsRoyceGhostFuelCapacity;
+        private MelonPreferences_Entry<float>? _supercarFuelCapacity;
+        private MelonPreferences_Entry<float>? _koenigseggCc850FuelCapacity;
         private MelonPreferences_Entry<bool>? _showFuelGauge;
         private MelonPreferences_Entry<bool>? _enableDynamicPricing;
         private MelonPreferences_Entry<bool>? _enablePricingOnTier;
@@ -64,6 +75,17 @@ namespace S1FuelMod
         public float HounddogFuelCapacity => _hounddogFuelCapacity?.Value ?? Constants.Defaults.HOUNDDOG_FUEL_CAPACITY;
         public float CheetahFuelCapacity => _cheetahFuelCapacity?.Value ?? Constants.Defaults.CHEETAH_FUEL_CAPACITY;
         public float HotboxFuelCapacity => _hotboxFuelCapacity?.Value ?? Constants.Defaults.HOTBOX_FUEL_CAPACITY; // Default to 40L if not set
+        public float BugattiTourbillonFuelCapacity => _bugattiTourbillonFuelCapacity?.Value ?? Constants.Defaults.BUGATTI_TOURBILLON_FUEL_CAPACITY;
+        public float CanofsoupcarFuelCapacity => _canofsoupcarFuelCapacity?.Value ?? Constants.Defaults.CANOFSOUPCAR_FUEL_CAPACITY;
+        public float CyberTruckFuelCapacity => _cyberTruckFuelCapacity?.Value ?? Constants.Defaults.CYBER_TRUCK_FUEL_CAPACITY;
+        public float DemonFuelCapacity => _demonFuelCapacity?.Value ?? Constants.Defaults.DEMON_FUEL_CAPACITY;
+        public float DriftcarFuelCapacity => _driftcarFuelCapacity?.Value ?? Constants.Defaults.DRIFTCAR_FUEL_CAPACITY;
+        public float GtrR34FuelCapacity => _gtrR34FuelCapacity?.Value ?? Constants.Defaults.GTR_R34_FUEL_CAPACITY;
+        public float GtrR35FuelCapacity => _gtrR35FuelCapacity?.Value ?? Constants.Defaults.GTR_R35_FUEL_CAPACITY;
+        public float LamborghiniVenenoFuelCapacity => _lamborghiniVenenoFuelCapacity?.Value ?? Constants.Defaults.LAMBORGHINI_VENENO_FUEL_CAPACITY;
+        public float RollsRoyceGhostFuelCapacity => _rollsRoyceGhostFuelCapacity?.Value ?? Constants.Defaults.ROLLS_ROYCE_GHOST_FUEL_CAPACITY;
+        public float SupercarFuelCapacity => _supercarFuelCapacity?.Value ?? Constants.Defaults.SUPERCAR_FUEL_CAPACITY;
+        public float KoenigseggCc850FuelCapacity => _koenigseggCc850FuelCapacity?.Value ?? Constants.Defaults.KOENIGSEGG_CC850_FUEL_CAPACITY;
         public bool ShowFuelGauge => _showFuelGauge?.Value ?? true;
         public bool EnableDynamicPricing => _enableDynamicPricing?.Value ?? true;
         public bool EnablePricingOnTier => _enablePricingOnTier?.Value ?? true;
@@ -236,6 +258,94 @@ namespace S1FuelMod
                     Constants.Defaults.HOTBOX_FUEL_CAPACITY,
                     "Hotbox Fuel Capacity (L)",
                     "Fuel capacity for the Hotbox vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _bugattiTourbillonFuelCapacity = _capacityCategory.CreateEntry<float>(
+                    "Bugatti_TourbillonFuelCapacity",
+                    Constants.Defaults.BUGATTI_TOURBILLON_FUEL_CAPACITY,
+                    "Bugatti Tourbillon Fuel Capacity (L)",
+                    "Fuel capacity for the Bugatti Tourbillon vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _canofsoupcarFuelCapacity = _capacityCategory.CreateEntry<float>(
+                    "canofsoupcarFuelCapacity",
+                    Constants.Defaults.CANOFSOUPCAR_FUEL_CAPACITY,
+                    "canofsoupcar Fuel Capacity (L)",
+                    "Fuel capacity for the canofsoupcar vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _cyberTruckFuelCapacity = _capacityCategory.CreateEntry<float>(
+                    "Cyber_TruckFuelCapacity",
+                    Constants.Defaults.CYBER_TRUCK_FUEL_CAPACITY,
+                    "Cyber Truck Fuel Capacity (L)",
+                    "Fuel capacity for the Cyber Truck vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _demonFuelCapacity = _capacityCategory.CreateEntry<float>(
+                    "DemonFuelCapacity",
+                    Constants.Defaults.DEMON_FUEL_CAPACITY,
+                    "Demon Fuel Capacity (L)",
+                    "Fuel capacity for the Demon vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _driftcarFuelCapacity = _capacityCategory.CreateEntry<float>(
+                    "driftcarFuelCapacity",
+                    Constants.Defaults.DRIFTCAR_FUEL_CAPACITY,
+                    "driftcar Fuel Capacity (L)",
+                    "Fuel capacity for the driftcar vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _gtrR34FuelCapacity = _capacityCategory.CreateEntry<float>(
+                    "GTR_R34FuelCapacity",
+                    Constants.Defaults.GTR_R34_FUEL_CAPACITY,
+                    "GTR R34 Fuel Capacity (L)",
+                    "Fuel capacity for the GTR R34 vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _gtrR35FuelCapacity = _capacityCategory.CreateEntry<float>(
+                    "GTR_R35FuelCapacity",
+                    Constants.Defaults.GTR_R35_FUEL_CAPACITY,
+                    "GTR R35 Fuel Capacity (L)",
+                    "Fuel capacity for the GTR R35 vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _lamborghiniVenenoFuelCapacity = _capacityCategory.CreateEntry<float>(
+                    "Lamborghini_VenenoFuelCapacity",
+                    Constants.Defaults.LAMBORGHINI_VENENO_FUEL_CAPACITY,
+                    "Lamborghini Veneno Fuel Capacity (L)",
+                    "Fuel capacity for the Lamborghini Veneno vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _rollsRoyceGhostFuelCapacity = _capacityCategory.CreateEntry<float>(
+                    "Rolls_Royce_GhostFuelCapacity",
+                    Constants.Defaults.ROLLS_ROYCE_GHOST_FUEL_CAPACITY,
+                    "Rolls Royce Ghost Fuel Capacity (L)",
+                    "Fuel capacity for the Rolls Royce Ghost vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _supercarFuelCapacity = _capacityCategory.CreateEntry<float>(
+                    "supercarFuelCapacity",
+                    Constants.Defaults.SUPERCAR_FUEL_CAPACITY,
+                    "Supercar Fuel Capacity (L)",
+                    "Fuel capacity for the Supercar vehicle in liters",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
+                );
+
+                _koenigseggCc850FuelCapacity = _capacityCategory.CreateEntry<float>(
+                    "Koenigsegg_CC850FuelCapacity",
+                    Constants.Defaults.KOENIGSEGG_CC850_FUEL_CAPACITY,
+                    "Koenigsegg CC850 Fuel Capacity (L)",
+                    "Fuel capacity for the Koenigsegg CC850 vehicle in liters",
                     validator: new ValueRange<float>(Constants.Constraints.MIN_FUEL_CAPACITY, Constants.Constraints.MAX_FUEL_CAPACITY)
                 );
 
