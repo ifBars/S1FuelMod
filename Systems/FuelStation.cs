@@ -32,6 +32,10 @@ namespace S1FuelMod.Systems
     /// <summary>
     /// FuelStation component that handles vehicle refueling interactions
     /// Attaches to gameobjects named "Bowser (EMC Merge)" to make them functional fuel stations
+    /// 
+    /// Supports both old (slider-based) and new (circular) fuel gauge UI systems based on
+    /// the UseNewGaugeUI preference setting. The appropriate gauge type is automatically
+    /// shown/hidden during refueling interactions based on the current preference.
     /// </summary>
 #if !MONO
     [RegisterTypeInIl2Cpp]
@@ -214,10 +218,25 @@ namespace S1FuelMod.Systems
                     return;
                 }
 
-                // Show FuelGaugeUI when starting interaction
+                // Show appropriate fuel gauge when starting interaction based on preference
+                // This ensures the correct gauge type (old slider vs new circular) is displayed
                 try
                 {
-                    Core.Instance?.GetFuelUIManager()?.ShowFuelGaugeForVehicle(_targetVehicle);
+                    var uiManager = Core.Instance?.GetFuelUIManager();
+                    if (uiManager != null)
+                    {
+                        bool useNewGauge = Core.Instance?.UseNewGaugeUI ?? false;
+                        if (useNewGauge)
+                        {
+                            // Use the new circular gauge (FuelGauge class)
+                            uiManager.ShowNewFuelGaugeForVehicle(_targetVehicle);
+                        }
+                        else
+                        {
+                            // Use the old slider-based gauge (FuelGaugeUI class)
+                            uiManager.ShowFuelGaugeForVehicle(_targetVehicle);
+                        }
+                    }
                 }
                 catch (Exception uiEx)
                 {
@@ -299,7 +318,31 @@ namespace S1FuelMod.Systems
         {
             try
             {
-                Core.Instance?.GetFuelUIManager()?.HideFuelGaugeForVehicle(_targetVehicle?.GUID.ToString());
+                // Hide appropriate fuel gauge when ending interaction based on preference
+                // This ensures the correct gauge type is hidden based on current UI preference
+                try
+                {
+                    var uiManager = Core.Instance?.GetFuelUIManager();
+                    if (uiManager != null && _targetVehicle != null)
+                    {
+                        bool useNewGauge = Core.Instance?.UseNewGaugeUI ?? false;
+                        if (useNewGauge)
+                        {
+                            // Hide the new circular gauge
+                            uiManager.HideNewFuelGaugeForVehicle(_targetVehicle.GUID.ToString());
+                        }
+                        else
+                        {
+                            // Hide the old slider-based gauge
+                            uiManager.HideFuelGaugeForVehicle(_targetVehicle.GUID.ToString());
+                        }
+                    }
+                }
+                catch (Exception uiEx)
+                {
+                    ModLogger.Debug($"Error hiding fuel gauge UI: {uiEx.Message}");
+                }
+
                 if (_isRefueling)
                 {
                     StopRefueling();

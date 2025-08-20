@@ -18,10 +18,12 @@ namespace S1FuelMod.UI
     public class FuelUIManager : IDisposable
     {
         private readonly Dictionary<string, FuelGaugeUI> _activeFuelGauges = new Dictionary<string, FuelGaugeUI>();
+        private readonly Dictionary<string, FuelGauge> _activeNewGauges = new Dictionary<string, FuelGauge>();
         private Player? _localPlayer;
         private LandVehicle? _currentVehicle;
         private string _currentVehicleGUID = string.Empty;
         private FuelGaugeUI? _currentGauge;
+        private FuelGauge? _currentNewGauge;
 
         public FuelUIManager()
         {
@@ -61,8 +63,9 @@ namespace S1FuelMod.UI
                 // Check if player changed vehicles
                 CheckVehicleChange();
 
-                // Update current gauge if active
+                // Update current gauges if active
                 _currentGauge?.Update();
+                _currentNewGauge?.Update();
             }
             catch (Exception ex)
             {
@@ -86,11 +89,16 @@ namespace S1FuelMod.UI
                 _currentVehicle = null;
                 _currentVehicleGUID = string.Empty;
 
-                // Hide current gauge if any
+                // Hide current gauges if any
                 if (_currentGauge != null)
                 {
                     _currentGauge.Hide();
                     _currentGauge = null;
+                }
+                if (_currentNewGauge != null)
+                {
+                    _currentNewGauge.Hide();
+                    _currentNewGauge = null;
                 }
             }
             catch (Exception ex)
@@ -111,6 +119,8 @@ namespace S1FuelMod.UI
 
                 // Clean up UI elements from the unloaded scene
                 var toRemove = new List<string>();
+                
+                // Clean up old gauges
                 foreach (var kvp in _activeFuelGauges)
                 {
                     if (kvp.Value != null && kvp.Value.IsVisible == false)
@@ -122,6 +132,21 @@ namespace S1FuelMod.UI
                 foreach (string guid in toRemove)
                 {
                     RemoveFuelGaugeForVehicle(guid);
+                }
+
+                // Clean up new gauges
+                toRemove.Clear();
+                foreach (var kvp in _activeNewGauges)
+                {
+                    if (kvp.Value != null && kvp.Value.IsVisible == false)
+                    {
+                        toRemove.Add(kvp.Key);
+                    }
+                }
+
+                foreach (string guid in toRemove)
+                {
+                    RemoveNewFuelGaugeForVehicle(guid);
                 }
             }
             catch (Exception ex)
@@ -205,21 +230,36 @@ namespace S1FuelMod.UI
                 // Check if vehicle changed
                 if (currentVehicleGUID != _currentVehicleGUID)
                 {
-                    // Hide previous gauge
+                    // Hide previous gauges
                     if (_currentGauge != null)
                     {
                         _currentGauge.Hide();
                         _currentGauge = null;
+                    }
+                    if (_currentNewGauge != null)
+                    {
+                        _currentNewGauge.Hide();
+                        _currentNewGauge = null;
                     }
 
                     // Update current vehicle tracking
                     _currentVehicle = currentVehicle;
                     _currentVehicleGUID = currentVehicleGUID;
 
-                    // Show new gauge if player entered a vehicle
+                    // Show appropriate gauge based on preference if player entered a vehicle
                     if (_currentVehicle != null)
                     {
-                        ShowFuelGaugeForVehicle(_currentVehicle);
+                        bool useNewGauge = Core.Instance?.UseNewGaugeUI ?? false;
+                        if (useNewGauge)
+                        {
+                            // Use the new circular gauge (FuelGauge class)
+                            ShowNewFuelGaugeForVehicle(_currentVehicle);
+                        }
+                        else
+                        {
+                            // Use the old slider-based gauge (FuelGaugeUI class)
+                            ShowFuelGaugeForVehicle(_currentVehicle);
+                        }
                     }
 
                     ModLogger.UIDebug($"FuelUIManager: Vehicle changed to {(_currentVehicle?.VehicleName ?? "none")}");
@@ -320,6 +360,94 @@ namespace S1FuelMod.UI
         }
 
         /// <summary>
+        /// Show new fuel gauge for a specific vehicle
+        /// </summary>
+        /// <param name="vehicle">The vehicle to show gauge for</param>
+        public void ShowNewFuelGaugeForVehicle(LandVehicle vehicle)
+        {
+            try
+            {
+                if (vehicle == null) return;
+
+                string vehicleGUID = vehicle.GUID.ToString();
+
+                // Get or create new fuel gauge for this vehicle
+                if (!_activeNewGauges.ContainsKey(vehicleGUID))
+                {
+                    // Get fuel system for this vehicle
+                    VehicleFuelSystem? fuelSystem = Core.Instance?.GetFuelSystemManager()?.GetFuelSystem(vehicle.GUID.ToString());
+                    if (fuelSystem == null)
+                    {
+                        ModLogger.Warning($"FuelUIManager: No fuel system found for vehicle {vehicleGUID.Substring(0, 8)}...");
+                        return;
+                    }
+
+                    // Create new fuel gauge
+                    FuelGauge gauge = new FuelGauge(fuelSystem);
+                    _activeNewGauges[vehicleGUID] = gauge;
+                    ModLogger.UIDebug($"FuelUIManager: Created new fuel gauge for vehicle {vehicleGUID.Substring(0, 8)}...");
+                }
+
+                // Show the gauge
+                _currentNewGauge = _activeNewGauges[vehicleGUID];
+                _currentNewGauge.Show();
+
+                ModLogger.UIDebug($"FuelUIManager: Showing new fuel gauge for {vehicle.VehicleName}");
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error showing new fuel gauge for vehicle", ex);
+            }
+        }
+
+        /// <summary>
+        /// Hide new fuel gauge for a specific vehicle
+        /// </summary>
+        /// <param name="vehicleGUID">GUID of the vehicle</param>
+        public void HideNewFuelGaugeForVehicle(string vehicleGUID)
+        {
+            try
+            {
+                if (_activeNewGauges.TryGetValue(vehicleGUID, out FuelGauge gauge))
+                {
+                    gauge.Hide();
+                    ModLogger.UIDebug($"FuelUIManager: Hidden new fuel gauge for vehicle {vehicleGUID.Substring(0, 8)}...");
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error hiding new fuel gauge for vehicle", ex);
+            }
+        }
+
+        /// <summary>
+        /// Remove new fuel gauge for a specific vehicle
+        /// </summary>
+        /// <param name="vehicleGUID">GUID of the vehicle</param>
+        public void RemoveNewFuelGaugeForVehicle(string vehicleGUID)
+        {
+            try
+            {
+                if (_activeNewGauges.TryGetValue(vehicleGUID, out FuelGauge gauge))
+                {
+                    gauge.Dispose();
+                    _activeNewGauges.Remove(vehicleGUID);
+
+                    if (_currentNewGauge == gauge)
+                    {
+                        _currentNewGauge = null;
+                    }
+
+                    ModLogger.UIDebug($"FuelUIManager: Removed new fuel gauge for vehicle {vehicleGUID.Substring(0, 8)}...");
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error removing new fuel gauge for vehicle", ex);
+            }
+        }
+
+        /// <summary>
         /// Hide all fuel gauges
         /// </summary>
         public void HideAllGauges()
@@ -331,7 +459,13 @@ namespace S1FuelMod.UI
                     gauge?.Hide();
                 }
 
+                foreach (var gauge in _activeNewGauges.Values)
+                {
+                    gauge?.Hide();
+                }
+
                 _currentGauge = null;
+                _currentNewGauge = null;
                 ModLogger.UIDebug("FuelUIManager: Hidden all fuel gauges");
             }
             catch (Exception ex)
@@ -352,6 +486,11 @@ namespace S1FuelMod.UI
                     gauge?.Show();
                 }
 
+                foreach (var gauge in _activeNewGauges.Values)
+                {
+                    gauge?.Show();
+                }
+
                 ModLogger.UIDebug("FuelUIManager: Shown all fuel gauges (debug mode)");
             }
             catch (Exception ex)
@@ -363,24 +502,29 @@ namespace S1FuelMod.UI
         /// <summary>
         /// Refresh all active fuel gauges to apply preference changes
         /// </summary>
-        public void RefreshAllGauges()
-        {
-            try
-            {
-                ModLogger.UIDebug("FuelUIManager: Refreshing all fuel gauges...");
+        //public void RefreshAllGauges()
+        //{
+        //    try
+        //    {
+        //        ModLogger.UIDebug("FuelUIManager: Refreshing all fuel gauges...");
                 
-                foreach (var gauge in _activeFuelGauges.Values)
-                {
-                    gauge?.UpdateGaugeDirection();
-                }
+        //        foreach (var gauge in _activeFuelGauges.Values)
+        //        {
+        //            gauge?.UpdateGaugeDirection();
+        //        }
+
+        //        foreach (var gauge in _activeNewGauges.Values)
+        //        {
+        //            gauge?.Update();
+        //        }
                 
-                ModLogger.UIDebug($"FuelUIManager: Refreshed {_activeFuelGauges.Count} fuel gauges");
-            }
-            catch (Exception ex)
-            {
-                ModLogger.Error("Error refreshing fuel gauges", ex);
-            }
-        }
+        //        ModLogger.UIDebug($"FuelUIManager: Refreshed {_activeFuelGauges.Count + _activeNewGauges.Count} fuel gauges");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        ModLogger.Error("Error refreshing fuel gauges", ex);
+        //    }
+        //}
 
         /// <summary>
         /// Get statistics about active UI elements
@@ -392,12 +536,29 @@ namespace S1FuelMod.UI
 
             try
             {
-                stats.TotalGauges = _activeFuelGauges.Count;
-                stats.HasCurrentGauge = _currentGauge != null;
+                stats.TotalGauges = _activeFuelGauges.Count + _activeNewGauges.Count;
+                stats.HasCurrentGauge = _currentGauge != null || _currentNewGauge != null;
                 stats.CurrentVehicleName = _currentVehicle?.VehicleName ?? "None";
                 stats.LocalPlayerInVehicle = _localPlayer?.CurrentVehicle != null;
 
+                // Count old gauges
                 foreach (var gauge in _activeFuelGauges.Values)
+                {
+                    if (gauge != null)
+                    {
+                        if (gauge.IsVisible)
+                            stats.VisibleGauges++;
+                        else
+                            stats.HiddenGauges++;
+                    }
+                    else
+                    {
+                        stats.InvalidGauges++;
+                    }
+                }
+
+                // Count new gauges
+                foreach (var gauge in _activeNewGauges.Values)
                 {
                     if (gauge != null)
                     {
@@ -421,6 +582,51 @@ namespace S1FuelMod.UI
         }
 
         /// <summary>
+        /// Refresh all active fuel gauges to apply preference changes
+        /// </summary>
+        public void RefreshAllGauges()
+        {
+            try
+            {
+                ModLogger.UIDebug("FuelUIManager: Refreshing all gauges...");
+
+                // Hide current gauges
+                if (_currentGauge != null)
+                {
+                    _currentGauge.Hide();
+                    _currentGauge = null;
+                }
+                if (_currentNewGauge != null)
+                {
+                    _currentNewGauge.Hide();
+                    _currentNewGauge = null;
+                }
+
+                // If we have a current vehicle, show the appropriate gauge based on new preferences
+                if (_currentVehicle != null)
+                {
+                    bool useNewGauge = Core.Instance?.UseNewGaugeUI ?? false;
+                    if (useNewGauge)
+                    {
+                        // Switch to new circular gauge
+                        ShowNewFuelGaugeForVehicle(_currentVehicle);
+                    }
+                    else
+                    {
+                        // Switch to old slider-based gauge
+                        ShowFuelGaugeForVehicle(_currentVehicle);
+                    }
+                }
+
+                ModLogger.UIDebug("FuelUIManager: All gauges refreshed");
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error refreshing fuel gauges", ex);
+            }
+        }
+
+        /// <summary>
         /// Dispose of the fuel UI manager
         /// </summary>
         public void Dispose()
@@ -433,14 +639,22 @@ namespace S1FuelMod.UI
                 SceneManager.sceneLoaded -= (UnityAction<Scene, LoadSceneMode>)OnSceneLoaded;
                 SceneManager.sceneUnloaded -= (UnityAction<Scene>)OnSceneUnloaded;
 
-                // Dispose of all gauges
+                // Dispose of all old gauges
                 foreach (var gauge in _activeFuelGauges.Values)
                 {
                     gauge?.Dispose();
                 }
 
+                // Dispose of all new gauges
+                foreach (var gauge in _activeNewGauges.Values)
+                {
+                    gauge?.Dispose();
+                }
+
                 _activeFuelGauges.Clear();
+                _activeNewGauges.Clear();
                 _currentGauge = null;
+                _currentNewGauge = null;
                 _currentVehicle = null;
                 _localPlayer = null;
 

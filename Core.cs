@@ -47,6 +47,7 @@ namespace S1FuelMod
         private MelonPreferences_Entry<float>? _baseFuelPricePerLiter;
         private MelonPreferences_Entry<bool>? _enableCurfewFuelTax;
         private MelonPreferences_Entry<bool>? _swapGaugeDirection;
+        private MelonPreferences_Entry<bool>? _useNewGaugeUI;
 
         // Mod Systems
         private FuelSystemManager? _fuelSystemManager;
@@ -71,6 +72,7 @@ namespace S1FuelMod
         public float BaseFuelPricePerLiter => _baseFuelPricePerLiter?.Value ?? Constants.Fuel.FUEL_PRICE_PER_LITER;
         public bool EnableCurfewFuelTax => _enableCurfewFuelTax?.Value ?? false;
         public bool SwapGaugeDirection => _swapGaugeDirection?.Value ?? false;
+        public bool UseNewGaugeUI => _useNewGaugeUI?.Value ?? true;
 
         /// <summary>
         /// Called when the mod is being loaded
@@ -92,6 +94,7 @@ namespace S1FuelMod
                 ModLogger.Info($"Fuel System Enabled: {EnableFuelSystem}");
                 ModLogger.Info($"Show Fuel Gauge: {ShowFuelGauge}");
                 ModLogger.Info($"Gauge Direction: {(SwapGaugeDirection ? "Left to Right" : "Right to Left")}");
+                ModLogger.Info($"Use New Gauge UI: {UseNewGaugeUI} ({(UseNewGaugeUI ? "Circular" : "Slider")})");
                 ModLogger.Info("Debug logging can be toggled in the mod preferences");
             }
             catch (Exception ex)
@@ -281,6 +284,13 @@ namespace S1FuelMod
                     "If enabled, fuel gauge fills from left to right instead of right to left"
                 );
 
+                _useNewGaugeUI = _preferencesCategory.CreateEntry<bool>(
+                    "UseNewGaugeUI",
+                    true,
+                    "Use New Gauge UI",
+                    "If enabled, uses the new circular fuel gauge instead of the old slider-based gauge. Change requires vehicle re-entry to take effect."
+                );
+
                 ModLogger.Debug("MelonPreferences initialized successfully");
             }
             catch (Exception ex)
@@ -429,6 +439,23 @@ namespace S1FuelMod
             catch (Exception ex)
             {
                 ModLogger.Error("Error refreshing fuel gauges", ex);
+            }
+        }
+
+        /// <summary>
+        /// Handle preference changes for the new gauge UI
+        /// Call this method when the UseNewGaugeUI preference changes
+        /// </summary>
+        public void OnNewGaugeUIPreferenceChanged()
+        {
+            try
+            {
+                ModLogger.Info($"New Gauge UI preference changed to: {UseNewGaugeUI}");
+                RefreshFuelGauges();
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error handling new gauge UI preference change", ex);
             }
         }
     }

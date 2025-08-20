@@ -19,6 +19,7 @@ A comprehensive fuel system mod for *Schedule I*, adding realistic fuel consumpt
 
 ### **User Interface**
 - **Real-time Fuel Gauge**: HUD display showing current fuel level and capacity
+- **Dual Gauge Options**: Choose between classic slider-based gauge or new circular gauge design
 - **Visual Warnings**: Color-coded alerts for low and critical fuel levels
 - **Refueling Display**: Fuel gauge remains visible during refueling operations
 
@@ -60,6 +61,7 @@ All settings are available via the **MelonPreferences** system under the `S1Fuel
 | `EnableFuelSystem` | `true` | Toggle the fuel system on/off |
 | `FuelConsumptionMultiplier` | `1.0` | Global fuel consumption modifier (0.5 = half, 2.0 = double) |
 | `ShowFuelGauge` | `true` | Enable the on-screen fuel gauge UI |
+| `UseNewGaugeUI` | `true` | Use the new circular fuel gauge instead of the old slider-based gauge |
 | `EnableDebugLogging` | `true` | Toggle detailed debug logs |
 
 ### **Fuel Capacities (Liters)**
@@ -193,6 +195,9 @@ The build process automatically:
 
 ### **Debug Information**
 Enable debug logging via `EnableDebugLogging` preference or press F6 to toggle debug output.
+
+### **UI Preference Changes**
+When changing the `UseNewGaugeUI` preference, you may need to exit and re-enter a vehicle for the change to take effect.
 
 ---
 

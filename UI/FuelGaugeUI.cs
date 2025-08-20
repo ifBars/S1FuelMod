@@ -78,7 +78,7 @@ namespace S1FuelMod.UI
                 _gaugeRect = _gaugeContainer.AddComponent<RectTransform>();
                 _gaugeRect.anchorMin = new Vector2(0.02f, 0.95f); // Top-left area
                 _gaugeRect.anchorMax = new Vector2(0.02f, 0.95f);
-                _gaugeRect.pivot = new Vector2(0f, 1f);
+                _gaugeRect.pivot = new Vector2(0f, 1f);       
                 _gaugeRect.sizeDelta = new Vector2(Constants.UI.GAUGE_WIDTH, Constants.UI.GAUGE_HEIGHT + 25f); // Extra space for text
                 _gaugeRect.anchoredPosition = Vector2.zero;
 
@@ -225,8 +225,9 @@ namespace S1FuelMod.UI
 
                 _gaugeSlider = fill.AddComponent<Slider>();
                 
-                // Check if gauge direction should be swapped
                 bool swapDirection = Core.Instance?.SwapGaugeDirection ?? false;
+                
+                // Set slider direction based on preferences
                 _gaugeSlider.direction = swapDirection ? Slider.Direction.LeftToRight : Slider.Direction.RightToLeft;
                 
                 _gaugeSlider.minValue = 0f;
@@ -318,8 +319,9 @@ namespace S1FuelMod.UI
 
                 RectTransform warningRect = warningObj.AddComponent<RectTransform>();
                 
-                // Check if gauge direction should be swapped and adjust warning icon position accordingly
+                // Check if gauge direction and position should be swapped and adjust warning icon position accordingly
                 bool swapDirection = Core.Instance?.SwapGaugeDirection ?? false;
+               
                 if (swapDirection)
                 {
                     // When gauge fills left to right, warning icon goes on the left
@@ -504,13 +506,13 @@ namespace S1FuelMod.UI
         {
             try
             {
-                if (_gaugeSlider == null || _warningIcon == null) return;
+                if (_gaugeSlider == null || _warningIcon == null || _gaugeRect == null) return;
 
                 bool swapDirection = Core.Instance?.SwapGaugeDirection ?? false;
                 
                 // Update slider direction
                 _gaugeSlider.direction = swapDirection ? Slider.Direction.LeftToRight : Slider.Direction.RightToLeft;
-                
+
                 // Update warning icon position
                 RectTransform warningRect = _warningIcon.GetComponent<RectTransform>();
                 if (warningRect != null)
@@ -529,7 +531,7 @@ namespace S1FuelMod.UI
                     }
                 }
                 
-                ModLogger.UIDebug($"FuelGaugeUI: Gauge direction updated to {(swapDirection ? "LeftToRight" : "RightToLeft")}");
+                ModLogger.UIDebug($"FuelGaugeUI: Gauge updated - Direction: {(swapDirection ? "LeftToRight" : "RightToLeft")}");
             }
             catch (Exception ex)
             {
