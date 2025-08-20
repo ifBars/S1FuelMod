@@ -198,6 +198,17 @@ namespace S1FuelMod.Systems
                 VehicleType.Hounddog => Core.Instance.HounddogFuelCapacity,
                 VehicleType.Cheetah => Core.Instance.CheetahFuelCapacity,
                 VehicleType.Hotbox => Core.Instance.HotboxFuelCapacity,
+                VehicleType.BugattiTourbillon => Core.Instance.BugattiTourbillonFuelCapacity,
+                VehicleType.CanOfSoupCar => Core.Instance.CanofsoupcarFuelCapacity,
+                VehicleType.CyberTruck => Core.Instance.CyberTruckFuelCapacity,
+                VehicleType.Demon => Core.Instance.DemonFuelCapacity,
+                VehicleType.Driftcar => Core.Instance.DriftcarFuelCapacity,
+                VehicleType.GTR_R34 => Core.Instance.GtrR34FuelCapacity,
+                VehicleType.GTR_R35 => Core.Instance.GtrR35FuelCapacity,
+                VehicleType.LamborghiniVeneno => Core.Instance.LamborghiniVenenoFuelCapacity,
+                VehicleType.RollsRoyceGhost => Core.Instance.RollsRoyceGhostFuelCapacity,
+                VehicleType.Supercar => Core.Instance.SupercarFuelCapacity,
+                VehicleType.KoenigseggCC850 => Core.Instance.KoenigseggCc850FuelCapacity,
                 VehicleType.Other => Core.Instance.DefaultFuelCapacity,
                 _ => Core.Instance.DefaultFuelCapacity // Fallback for null or unknown types
             };
@@ -547,6 +558,39 @@ namespace S1FuelMod.Systems
                 case "Hotbox":
                     _vehicleType = VehicleType.Hotbox;
                     break;
+                case "Bugatti_Tourbillon":
+                    _vehicleType = VehicleType.BugattiTourbillon;
+                    break;
+                case "canofsoupcar":
+                    _vehicleType = VehicleType.CanOfSoupCar;
+                    break;
+                case "Cyber_Truck":
+                    _vehicleType = VehicleType.CyberTruck;
+                    break;
+                case "Demon":
+                    _vehicleType = VehicleType.Demon;
+                    break;
+                case "driftcar":
+                    _vehicleType = VehicleType.Driftcar;
+                    break;
+                case "GTR_R34":
+                    _vehicleType = VehicleType.GTR_R34;
+                    break;
+                case "GTR_R35":
+                    _vehicleType = VehicleType.GTR_R35;
+                    break;
+                case "Lamborghini_Veneno":
+                    _vehicleType = VehicleType.LamborghiniVeneno;
+                    break;
+                case "Rolls_Royce_Ghost":
+                    _vehicleType = VehicleType.RollsRoyceGhost;
+                    break;
+                case "supercar":
+                    _vehicleType = VehicleType.Supercar;
+                    break;
+                case "Koenigsegg_CC850":
+                    _vehicleType = VehicleType.KoenigseggCC850;
+                    break;
                 default:
                     _vehicleType = VehicleType.Other;
                     break;
@@ -602,6 +646,17 @@ namespace S1FuelMod.Systems
         Hounddog,
         Cheetah,
         Hotbox,
+        BugattiTourbillon,
+        CanOfSoupCar,
+        CyberTruck,
+        Demon,
+        Driftcar,
+        GTR_R34,
+        GTR_R35,
+        LamborghiniVeneno,
+        RollsRoyceGhost,
+        Supercar,
+        KoenigseggCC850,
         Other
     }
 }
