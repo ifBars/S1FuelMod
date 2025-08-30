@@ -36,16 +36,16 @@
             public const float HOTBOX_FUEL_CAPACITY = 50f;
             // Rains Car Mod vehicles default capacities
             public const float BUGATTI_TOURBILLON_FUEL_CAPACITY = 40f;
-            public const float CANOFSOUPCAR_FUEL_CAPACITY = 25f;
+            public const float CANOFSOUPCAR_FUEL_CAPACITY = 30f;
             public const float CYBER_TRUCK_FUEL_CAPACITY = 50f;
-            public const float DEMON_FUEL_CAPACITY = 45f;
+            public const float DEMON_FUEL_CAPACITY = 40f;
             public const float DRIFTCAR_FUEL_CAPACITY = 25f;
             public const float GTR_R34_FUEL_CAPACITY = 30f;
             public const float GTR_R35_FUEL_CAPACITY = 35f;
-            public const float LAMBORGHINI_VENENO_FUEL_CAPACITY = 40f;
-            public const float ROLLS_ROYCE_GHOST_FUEL_CAPACITY = 50f;
-            public const float SUPERCAR_FUEL_CAPACITY = 40f;
-            public const float KOENIGSEGG_CC850_FUEL_CAPACITY = 40f;
+            public const float LAMBORGHINI_VENENO_FUEL_CAPACITY = 35f;
+            public const float ROLLS_ROYCE_GHOST_FUEL_CAPACITY = 45f;
+            public const float SUPERCAR_FUEL_CAPACITY = 30f;
+            public const float KOENIGSEGG_CC850_FUEL_CAPACITY = 45f;
             public const bool SHOW_FUEL_GAUGE = true;
             public const bool ENABLE_DEBUG_LOGGING = false; // Enable for testing
         }
