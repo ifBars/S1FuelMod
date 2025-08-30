@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using S1FuelMod.Utils;
+﻿using S1FuelMod.Utils;
 #if MONO
 using ScheduleOne.DevUtilities;
 using ScheduleOne.GameTime;
@@ -12,6 +9,7 @@ using ScheduleOne.Persistence.Datas;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Vehicles;
 using ScheduleOne.Law;
+using ScheduleOne.UI;
 #else
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.GameTime;
@@ -22,10 +20,12 @@ using Il2CppScheduleOne.Persistence.Datas;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Vehicles;
 using Il2CppScheduleOne.Law;
+using Il2CppScheduleOne.UI;
 using MelonLoader;
 #endif
 using UnityEngine;
 using UnityEngine.Events;
+
 
 namespace S1FuelMod.Systems
 {
@@ -283,10 +283,10 @@ namespace S1FuelMod.Systems
                     {
                         onInteractStart.Invoke();
                     }
-                    
+
                     // Apply the interaction display scale effect
 #if MONO
-                    Singleton<InteractionManager>.Instance.LerpDisplayScale(0.9f);
+                    Singleton<InteractionCanvas>.Instance.LerpDisplayScale(0.9f);
 #else
                     // IL2CPP safe access
                     try
@@ -294,7 +294,7 @@ namespace S1FuelMod.Systems
                         var interactionManager = Singleton<InteractionManager>.Instance;
                         if (interactionManager != null)
                         {
-                            //interactionManager.LerpDisplayScale(0.9f);
+                            Singleton<InteractionCanvas>.Instance.LerpDisplayScale(0.9f);
                         }
                     }
                     catch (Exception ex)
@@ -354,23 +354,23 @@ namespace S1FuelMod.Systems
                 {
                     onInteractEnd.Invoke();
                 }
-                
+
                 // Reset the interaction display scale effect
 #if MONO
-                Singleton<InteractionManager>.Instance.LerpDisplayScale(1f);
+                Singleton<InteractionCanvas>.Instance.LerpDisplayScale(1f);
 #else
                 // IL2CPP safe access
                 try
                 {
-                    var interactionManager = Singleton<InteractionManager>.Instance;
-                    if (interactionManager != null)
+                    var interactionCanvas = Singleton<InteractionCanvas>.Instance;
+                    if (interactionCanvas != null)
                     {
-                        //interactionManager.LerpDisplayScale(1f);
+                        Singleton<InteractionCanvas>.Instance.LerpDisplayScale(1f);
                     }
                 }
                 catch (Exception ex)
                 {
-                    ModLogger.Debug($"Error accessing InteractionManager in EndInteract: {ex.Message}");
+                    ModLogger.Debug($"Error accessing InteractionCanvas in EndInteract: {ex.Message}");
                 }
 #endif
             }
