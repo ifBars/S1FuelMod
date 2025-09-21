@@ -1,4 +1,8 @@
-﻿using S1FuelMod.Utils;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using S1FuelMod.Systems.FuelTypes;
+using S1FuelMod.Utils;
 #if MONO
 using ScheduleOne.DevUtilities;
 using ScheduleOne.GameTime;
@@ -22,6 +26,7 @@ using Il2CppScheduleOne.Vehicles;
 using Il2CppScheduleOne.Law;
 using Il2CppScheduleOne.UI;
 using MelonLoader;
+using Il2CppInterop.Runtime.Attributes;
 #endif
 using UnityEngine;
 using UnityEngine.Events;
@@ -47,6 +52,11 @@ namespace S1FuelMod.Systems
         private float pricePerLiter = 1f;
         private float maxInteractionDistance = 4f;
         private float vehicleDetectionRadius = 6f;
+
+        private static readonly FuelTypeId[] EmptyFuelTypes = new FuelTypeId[0];
+        private readonly Dictionary<FuelTypeId, float> _fuelTypePrices = new Dictionary<FuelTypeId, float>();
+        private FuelTypeId _selectedFuelType = FuelTypeId.Regular;
+        private FuelTypeId[] _compatibleFuelTypes = EmptyFuelTypes;
 
         // Audio
         private AudioSource refuelAudioSource;
@@ -133,6 +143,7 @@ namespace S1FuelMod.Systems
             // Set interaction values from constants
             refuelRate = Constants.Fuel.REFUEL_RATE;
             pricePerLiter = Constants.Fuel.FUEL_PRICE_PER_LITER;
+            SetFuelPrice();
         }
 
         public override void Hovered()
@@ -149,13 +160,16 @@ namespace S1FuelMod.Systems
                         var fuelSystem = _fuelSystemManager?.GetFuelSystem(nearbyVehicle.GUID.ToString());
                         if (fuelSystem != null)
                         {
-                            SetFuelPrice();
+                            PrepareFuelSelection(fuelSystem);
                             float fuelNeeded = fuelSystem.MaxFuelCapacity - fuelSystem.CurrentFuelLevel;
-                            float estimatedCost = fuelNeeded * pricePerLiter;
+                            float selectedPrice = pricePerLiter;
+                            float estimatedCost = fuelNeeded * selectedPrice;
+                            string fuelTypeName = GetFuelTypeDisplayName(_selectedFuelType);
 
                             if (fuelNeeded > 0.1f) // Only show if vehicle needs fuel
                             {
-                                SetMessage($"Refuel {nearbyVehicle.VehicleName} - {MoneyManager.FormatAmount(estimatedCost)} | ${pricePerLiter:F2}/L");
+                                string compatibilityTag = BuildFuelCompatibilityTag(fuelSystem, _selectedFuelType);
+                                SetMessage($"Refuel {nearbyVehicle.VehicleName} [{fuelTypeName}{compatibilityTag}] - {MoneyManager.FormatAmount(estimatedCost)} | ${selectedPrice:F2}/L");
                                 SetInteractableState(EInteractableState.Default);
                             }
                             else
@@ -259,6 +273,8 @@ namespace S1FuelMod.Systems
                     ShowMessage("Vehicle has no fuel system!", MessageType.Error);
                     return;
                 }
+
+                PrepareFuelSelection(_targetFuelSystem);
 
                 // Check if vehicle needs fuel
                 float fuelNeeded = _targetFuelSystem.MaxFuelCapacity - _targetFuelSystem.CurrentFuelLevel;
@@ -393,8 +409,11 @@ namespace S1FuelMod.Systems
             // Play start sound
             PlayRefuelSound(refuelStartSound);
 
-            ModLogger.Debug($"Started refueling {_targetVehicle.VehicleName} at fuel station");
-            ShowMessage($"Refueling {_targetVehicle.VehicleName}...", MessageType.Info);
+            string fuelTypeName = GetFuelTypeDisplayName(_selectedFuelType);
+            string compatibilityTag = BuildFuelCompatibilityTag(_targetFuelSystem, _selectedFuelType);
+
+            ModLogger.Debug($"Started refueling {_targetVehicle.VehicleName} with {fuelTypeName} at fuel station");
+            ShowMessage($"Refueling {_targetVehicle.VehicleName} with {fuelTypeName}{compatibilityTag}...", MessageType.Info);
         }
 
         /// <summary>
@@ -412,9 +431,10 @@ namespace S1FuelMod.Systems
             // Process payment if any fuel was added
             if (_totalFuelAdded > 0.01f)
             {
+                string fuelTypeName = GetFuelTypeDisplayName(_selectedFuelType);
                 ProcessPayment();
-                ShowMessage($"Refueled {_totalFuelAdded:F1}L for {MoneyManager.FormatAmount(_totalCost)}", MessageType.Success);
-                ModLogger.Debug($"Completed refueling: {_totalFuelAdded:F1}L for {MoneyManager.FormatAmount(_totalCost)}");
+                ShowMessage($"Refueled {_totalFuelAdded:F1}L of {fuelTypeName} for {MoneyManager.FormatAmount(_totalCost)}", MessageType.Success);
+                ModLogger.Debug($"Completed refueling: {_totalFuelAdded:F1}L of {fuelTypeName} for {MoneyManager.FormatAmount(_totalCost)}");
             }
             else
             {
@@ -445,11 +465,26 @@ namespace S1FuelMod.Systems
         private void UpdateRefueling()
         {
             float deltaTime = Time.deltaTime;
-            float fuelToAdd = refuelRate * deltaTime;
-            float costForThisFuel = fuelToAdd * pricePerLiter;
+            float desiredFuel = refuelRate * deltaTime;
+            if (_targetFuelSystem == null)
+            {
+                return;
+            }
+
+            float availableCapacity = Mathf.Max(0f, _targetFuelSystem.MaxFuelCapacity - _targetFuelSystem.CurrentFuelLevel);
+            float fuelToAdd = Mathf.Min(desiredFuel, availableCapacity);
+            float selectedPrice = GetSelectedFuelPrice();
+            float costForThisFuel = fuelToAdd * selectedPrice;
 
             if (_targetVehicle == null || _targetFuelSystem == null)
             {
+                return;
+            }
+
+            if (fuelToAdd <= 0.0001f)
+            {
+                StopRefueling();
+                ShowMessage("Vehicle tank is now full!", MessageType.Success);
                 return;
             }
 
@@ -462,12 +497,19 @@ namespace S1FuelMod.Systems
                 return;
             }
 
+            if (!_targetFuelSystem.ChangeFuelType(_selectedFuelType, fuelToAdd))
+            {
+                StopRefueling();
+                ShowMessage("Selected fuel type is incompatible with this vehicle!", MessageType.Error);
+                return;
+            }
+
             // Add fuel to vehicle
             float actualFuelAdded = _targetFuelSystem.AddFuel(fuelToAdd);
             if (actualFuelAdded > 0f)
             {
                 _totalFuelAdded += actualFuelAdded;
-                _totalCost += actualFuelAdded * pricePerLiter;
+                _totalCost += actualFuelAdded * selectedPrice;
 
                 // Play refuel loop sound occasionally
                 if (refuelLoopSound != null && !refuelAudioSource.isPlaying)
@@ -488,6 +530,147 @@ namespace S1FuelMod.Systems
             {
                 StopRefueling();
                 ShowMessage("Vehicle moved too far away!", MessageType.Warning);
+            }
+        }
+
+        private void PrepareFuelSelection(VehicleFuelSystem fuelSystem)
+        {
+            if (fuelSystem == null)
+            {
+                _selectedFuelType = FuelTypeId.Regular;
+                pricePerLiter = Constants.Fuel.FUEL_PRICE_PER_LITER;
+                return;
+            }
+
+            SetFuelPrice();
+            _compatibleFuelTypes = GetCompatibleFuelTypesForVehicle(fuelSystem);
+
+            FuelTypeId preferred = fuelSystem.GetRecommendedFuelType();
+
+            if (!IsFuelTypeCompatible(preferred))
+            {
+                preferred = GetFallbackFuelType();
+            }
+
+            if (!IsFuelTypeCompatible(_selectedFuelType))
+            {
+                _selectedFuelType = preferred;
+            }
+
+            if (!IsFuelTypeCompatible(_selectedFuelType))
+            {
+                _selectedFuelType = FuelTypeId.Regular;
+            }
+
+            pricePerLiter = GetSelectedFuelPrice();
+        }
+
+        private FuelTypeId[] GetCompatibleFuelTypesForVehicle(VehicleFuelSystem fuelSystem)
+        {
+            if (fuelSystem == null || FuelTypeManager.Instance == null)
+            {
+                return EmptyFuelTypes;
+            }
+
+#if MONO
+            var compatList = FuelTypeManager.Instance.GetCompatibleFuelTypes(fuelSystem.VehicleType);
+            if (compatList == null || compatList.Count == 0)
+            {
+                return EmptyFuelTypes;
+            }
+            return compatList.ToArray();
+#else
+            var compatArray = FuelTypeManager.Instance.GetCompatibleFuelTypesArray(fuelSystem.VehicleType);
+            return compatArray ?? EmptyFuelTypes;
+#endif
+        }
+
+        private bool IsFuelTypeCompatible(FuelTypeId fuelType)
+        {
+            if (_compatibleFuelTypes == null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < _compatibleFuelTypes.Length; i++)
+            {
+                if (_compatibleFuelTypes[i] == fuelType)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private FuelTypeId GetFallbackFuelType()
+        {
+            if (_compatibleFuelTypes != null && _compatibleFuelTypes.Length > 0)
+            {
+                return _compatibleFuelTypes[0];
+            }
+
+            return FuelTypeId.Regular;
+        }
+
+        private float GetSelectedFuelPrice()
+        {
+            return GetFuelPriceForType(_selectedFuelType);
+        }
+
+        private float GetFuelPriceForType(FuelTypeId fuelTypeId)
+        {
+            if (_fuelTypePrices.TryGetValue(fuelTypeId, out float cachedPrice))
+            {
+                return cachedPrice;
+            }
+
+            float fallbackPrice = Core.Instance?.BaseFuelPricePerLiter ?? Constants.Fuel.FUEL_PRICE_PER_LITER;
+            return fallbackPrice;
+        }
+
+        private string GetFuelTypeDisplayName(FuelTypeId fuelTypeId)
+        {
+            if (FuelTypeManager.Instance != null)
+            {
+                string displayName = FuelTypeManager.Instance.GetFuelDisplayName(fuelTypeId);
+                if (!string.IsNullOrEmpty(displayName))
+                {
+                    return displayName;
+                }
+            }
+
+            return fuelTypeId.ToString();
+        }
+
+        private string BuildFuelCompatibilityTag(VehicleFuelSystem fuelSystem, FuelTypeId fuelType)
+        {
+            if (fuelSystem == null)
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                FuelTypeId recommended = fuelSystem.GetRecommendedFuelType();
+                bool compatible = fuelSystem.IsFuelCompatible(fuelType);
+
+                if (fuelType == recommended && compatible)
+                {
+                    return " (Recommended)";
+                }
+
+                if (compatible)
+                {
+                    return " (Compatible)";
+                }
+
+                return " (Penalty)";
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Debug($"Error building fuel compatibility tag: {ex.Message}");
+                return string.Empty;
             }
         }
 
@@ -655,39 +838,86 @@ namespace S1FuelMod.Systems
         {
             float basePrice = Core.Instance?.BaseFuelPricePerLiter ?? Constants.Fuel.FUEL_PRICE_PER_LITER;
 
-            if (Core.Instance?.EnableDynamicPricing != true)
+            if (Core.Instance?.EnableDynamicPricing == true)
             {
-                pricePerLiter = basePrice;
-                return;
+                float timeModifier = 0f;
+
+                try
+                {
+                    if (NetworkSingleton<TimeManager>.InstanceExists)
+                    {
+                        int dayIndex = NetworkSingleton<TimeManager>.Instance.DayIndex;
+                        int hashCode = ("Petrol" + dayIndex.ToString()).GetHashCode();
+                        timeModifier = Mathf.Lerp(0f, 0.2f, Mathf.InverseLerp(-2.1474836E+09f, 2.1474836E+09f, (float)hashCode));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ModLogger.Debug($"Error calculating dynamic price modifier: {ex.Message}");
+                }
+
+                float tierMultiplier = GetTierMultiplier();
+
+                float adjustedPrice = Core.Instance.EnablePricingOnTier
+                    ? basePrice + (basePrice * timeModifier) * tierMultiplier
+                    : basePrice + (basePrice * timeModifier);
+
+                basePrice = ApplyCurfewTax(adjustedPrice);
             }
 
-            // Use a hash based on the day index to create a dynamic price
-            int hashCode = ("Petrol" + NetworkSingleton<TimeManager>.Instance.DayIndex.ToString()).GetHashCode();
-            float time = Mathf.Lerp(0f, 0.2f, Mathf.InverseLerp(-2.1474836E+09f, 2.1474836E+09f, (float)hashCode));
+            UpdateFuelTypePriceCache(basePrice);
+            pricePerLiter = GetSelectedFuelPrice();
+        }
 
-            // Calculate a percentage increase based on the players tier in-game
-            float tierMultiplier = NetworkSingleton<LevelManager>.Instance.Rank switch
-            {   
-                ERank.Street_Rat => 1f, // Tier 0
-                ERank.Hoodlum => 1.05f, // Tier 1
-                ERank.Peddler => 1.1f, // Tier 2
-                ERank.Hustler => 1.15f, // Tier 3
-                ERank.Bagman => 1.2f, // Tier 4
-                ERank.Enforcer => 1.25f, // Tier 5
-                ERank.Shot_Caller => 1.3f, // Tier 6
-                ERank.Block_Boss => 1.4f, // Tier 7
-                ERank.Underlord => 1.5f, // Tier 8
-                ERank.Baron => 1.6f, // Tier 9
-                ERank.Kingpin => 1.8f, // Tier 10
-                _ => 1f // Higher tiers
-            };
+        private float GetTierMultiplier()
+        {
+            try
+            {
+                if (!NetworkSingleton<LevelManager>.InstanceExists)
+                {
+                    return 1f;
+                }
 
-            // Calculate final price based on time and tier multiplier
-            float finalPrice = ((Core.Instance.EnablePricingOnTier)
-                ? basePrice + (basePrice * time) * tierMultiplier
-                : basePrice);
+                switch (NetworkSingleton<LevelManager>.Instance.Rank)
+                {
+                    case ERank.Hoodlum:
+                        return 1.05f;
+                    case ERank.Peddler:
+                        return 1.1f;
+                    case ERank.Hustler:
+                        return 1.15f;
+                    case ERank.Bagman:
+                        return 1.2f;
+                    case ERank.Enforcer:
+                        return 1.25f;
+                    case ERank.Shot_Caller:
+                        return 1.3f;
+                    case ERank.Block_Boss:
+                        return 1.4f;
+                    case ERank.Underlord:
+                        return 1.5f;
+                    case ERank.Baron:
+                        return 1.6f;
+                    case ERank.Kingpin:
+                        return 1.8f;
+                    default:
+                        return 1f;
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Debug($"Error retrieving tier multiplier: {ex.Message}");
+                return 1f;
+            }
+        }
 
-            // Apply curfew fuel tax if enabled (double price during curfew)
+        private float ApplyCurfewTax(float price)
+        {
+            if (Core.Instance?.EnableCurfewFuelTax != true)
+            {
+                return price;
+            }
+
             try
             {
 #if MONO
@@ -695,16 +925,45 @@ namespace S1FuelMod.Systems
 #else
                 bool curfewActive = NetworkSingleton<Il2CppScheduleOne.GameTime.TimeManager>.Instance.IsCurrentTimeWithinRange(CurfewManager.CURFEW_START_TIME, CurfewManager.CURFEW_END_TIME);
 #endif
-                if (Core.Instance?.EnableCurfewFuelTax == true && curfewActive)
+                if (curfewActive)
                 {
-                    finalPrice *= 2f;
+                    return price * 2f;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                ModLogger.Debug($"Error applying curfew tax: {ex.Message}");
+            }
 
-            //float finalPrice = (basePrice + (basePrice * time) * tierMultiplier);
-            pricePerLiter = finalPrice;
-            // ModLogger.Debug($"Setting fuel price based on time: {basePrice} {time:F2} and {tierMultiplier} multiplier to {finalPrice:F2}");
+            return price;
+        }
+
+        private void UpdateFuelTypePriceCache(float basePrice)
+        {
+            _fuelTypePrices.Clear();
+
+            if (FuelTypeManager.Instance == null)
+            {
+                _fuelTypePrices[FuelTypeId.Regular] = basePrice;
+                _fuelTypePrices[FuelTypeId.Premium] = basePrice;
+                _fuelTypePrices[FuelTypeId.Diesel] = basePrice;
+                return;
+            }
+
+            Array fuelValues = Enum.GetValues(typeof(FuelTypeId));
+            for (int i = 0; i < fuelValues.Length; i++)
+            {
+                FuelTypeId fuelTypeId = (FuelTypeId)fuelValues.GetValue(i);
+                float price = basePrice;
+
+                var fuelType = FuelTypeManager.Instance.GetFuelType(fuelTypeId);
+                if (fuelType != null)
+                {
+                    price = basePrice * Mathf.Max(0.01f, fuelType.PriceMultiplier);
+                }
+
+                _fuelTypePrices[fuelTypeId] = price;
+            }
         }
 
         /// <summary>

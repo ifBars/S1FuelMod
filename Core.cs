@@ -12,7 +12,9 @@ using MelonLoader.Preferences;
 using S1FuelMod.Utils;
 using S1FuelMod.Integrations;
 using S1FuelMod.Systems;
+using S1FuelMod.Systems.FuelTypes;
 using S1FuelMod.UI;
+using UnityEngine;
 
 [assembly: MelonInfo(typeof(S1FuelMod.Core), Constants.MOD_NAME, Constants.MOD_VERSION, Constants.MOD_AUTHORS)]
 [assembly: MelonGame(Constants.Game.GAME_STUDIO, Constants.Game.GAME_NAME)]
@@ -61,6 +63,7 @@ namespace S1FuelMod
         private MelonPreferences_Entry<bool>? _useNewGaugeUI;
 
         // Mod Systems
+        private FuelTypeManager? _fuelTypeManager;
         private FuelSystemManager? _fuelSystemManager;
         private FuelUIManager? _fuelUIManager;
         private FuelStationManager? _fuelStationManager;
@@ -422,6 +425,18 @@ namespace S1FuelMod
                     return;
                 }
 
+                // Initialize fuel type manager before other systems
+                if (FuelTypeManager.Instance != null)
+                {
+                    _fuelTypeManager = FuelTypeManager.Instance;
+                }
+                else
+                {
+                    var fuelTypeManagerObject = new GameObject("S1FuelTypeManager");
+                    _fuelTypeManager = fuelTypeManagerObject.AddComponent<FuelTypeManager>();
+                }
+                ModLogger.Debug("Fuel type manager initialized");
+
                 // Initialize fuel system manager
                 _fuelSystemManager = new FuelSystemManager();
                 ModLogger.Debug("Fuel system manager initialized");
@@ -484,6 +499,12 @@ namespace S1FuelMod
             try
             {
                 ModLogger.Info("S1FuelMod shutting down...");
+                if (_fuelTypeManager != null)
+                {
+                    UnityEngine.Object.Destroy(_fuelTypeManager.gameObject);
+                    _fuelTypeManager = null;
+                }
+
                 _fuelSystemManager?.Dispose();
                 _fuelUIManager?.Dispose();
                 _fuelStationManager?.Dispose();

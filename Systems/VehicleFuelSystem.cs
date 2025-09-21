@@ -8,6 +8,7 @@ using ScheduleOne.DevUtilities;
 using Il2CppScheduleOne.Vehicles;
 using Il2CppInterop.Runtime.Attributes;
 #endif
+using S1FuelMod.Systems.FuelTypes;
 using S1FuelMod.Utils;
 
 
@@ -43,6 +44,8 @@ namespace S1FuelMod.Systems
         private bool _criticalFuelWarningShown = false;
         private float _lastConsumptionTime = 0f;
         private VehicleType _vehicleType = VehicleType.Other;
+        private FuelTypeId _currentFuelType = FuelTypeId.Regular;
+        private float _fuelQuality = 1.0f;
 
         // Events for UI updates
         public UnityEvent<float> OnFuelLevelChanged = new UnityEvent<float>();
@@ -67,6 +70,25 @@ namespace S1FuelMod.Systems
         /// Get the network ID for this vehicle (consistent across all clients)
         /// </summary>
         public string NetworkID => _landVehicle?.NetworkObject?.ObjectId.ToString() ?? _vehicleGUID;
+
+        public FuelTypeId CurrentFuelType => _currentFuelType;
+        public float FuelQuality => _fuelQuality;
+        public VehicleType VehicleType => _vehicleType;
+
+        public FuelTypeId GetRecommendedFuelType()
+        {
+            return FuelTypeManager.Instance?.GetRecommendedFuelType(_vehicleType) ?? FuelTypeId.Regular;
+        }
+
+        public bool IsFuelCompatible(FuelTypeId fuelTypeId)
+        {
+            return FuelTypeManager.Instance?.IsFuelCompatible(fuelTypeId, _vehicleType) ?? true;
+        }
+
+        public string GetCurrentFuelDisplayName()
+        {
+            return FuelTypeManager.Instance?.GetFuelDisplayName(_currentFuelType) ?? "Regular";
+        }
 
 #if !MONO
         /// <summary>
@@ -95,6 +117,7 @@ namespace S1FuelMod.Systems
                 if (Core.Instance != null)
                 {
                     SetVehicleType();
+                    InitializeFuelTypeState();
                     baseFuelConsumptionRate = SetBaseFuelConsumption();
                     globalMaxFuelCapacity = Core.Instance.DefaultFuelCapacity;
                     maxFuelCapacity = SetMaxFuelCapacity();
@@ -269,42 +292,93 @@ namespace S1FuelMod.Systems
         /// </summary>
         private void UpdateFuelConsumption()
         {
-            if (_landVehicle == null || currentFuelLevel <= 0f || !_isEngineRunning) return;
+            if (_landVehicle == null || currentFuelLevel <= 0f || !_isEngineRunning)
+                return;
 
-            float deltaTime = Time.time - _lastConsumptionTime;
+            float deltaTime = Time.deltaTime;
+            float throttleInput = _landVehicle.currentThrottle;
+
+            float baseConsumption = CalculateBaseConsumption(throttleInput);
+            if (baseConsumption <= 0f)
+            {
+                _lastConsumptionTime = Time.time;
+                return;
+            }
+
+            float speedMultiplier = CalculateAdvancedSpeedMultiplier(_landVehicle.speed_Kmh);
+            float fuelTypeModifier = GetCurrentFuelEfficiencyModifier();
+
+            float finalConsumption = baseConsumption * speedMultiplier * fuelTypeModifier;
+            if (finalConsumption <= 0f)
+            {
+                _lastConsumptionTime = Time.time;
+                return;
+            }
+
+            float fuelConsumed = (finalConsumption / 3600f) * deltaTime;
+            if (fuelConsumed > 0.0005f && _landVehicle.isOccupied)
+            {
+                ConsumeFuel(fuelConsumed);
+            }
+
             _lastConsumptionTime = Time.time;
+        }
 
-            // Calculate consumption rate based on throttle and speed
-            float throttleInput = Math.Abs(_landVehicle.currentThrottle);
-            float consumptionRate = 0f;
+        private float CalculateBaseConsumption(float throttleInput)
+        {
+            float absoluteThrottle = Mathf.Clamp01(Mathf.Abs(throttleInput));
 
-            if (throttleInput > 0.01f)
+            if (absoluteThrottle > 0.01f)
             {
-                // Active driving - scale consumption with throttle input
-                consumptionRate = Mathf.Lerp(idleConsumptionRate, baseFuelConsumptionRate, throttleInput);
-                
-                // Additional consumption for high speeds
-                if (_landVehicle.speed_Kmh > 50f)
-                {
-                    float speedMultiplier = 1f + ((_landVehicle.speed_Kmh - 50f) / 100f);
-                    consumptionRate *= speedMultiplier;
-                }
-            }
-            else if (_landVehicle.isOccupied)
-            {
-                // Idling when occupied
-                consumptionRate = idleConsumptionRate;
+                return Mathf.Lerp(idleConsumptionRate, baseFuelConsumptionRate, absoluteThrottle);
             }
 
-            // Apply consumption (convert from per-hour to per-second)
-            if (consumptionRate > 0f)
+            if (_landVehicle != null && _landVehicle.isOccupied)
             {
-                float fuelConsumed = (consumptionRate / 3600f) * deltaTime;
-                if (fuelConsumed > 0.001f && _landVehicle.isOccupied) // Only consume if significant amount and player is in vehicle
-                {
-                    ConsumeFuel(fuelConsumed);
-                }
+                return idleConsumptionRate;
             }
+
+            return 0f;
+        }
+
+        private float CalculateAdvancedSpeedMultiplier(float speedKmh)
+        {
+            if (speedKmh <= 20f)
+                return 0.8f;
+
+            if (speedKmh <= 40f)
+                return 1.0f;
+
+            if (speedKmh <= 60f)
+                return 1.0f + ((speedKmh - 40f) * 0.025f);
+
+            if (speedKmh <= 80f)
+                return 1.5f + ((speedKmh - 60f) * 0.05f);
+
+            float excessSpeed = speedKmh - 80f;
+            return 2.5f + (excessSpeed * excessSpeed) * 0.002f;
+        }
+
+        private float GetCurrentFuelEfficiencyModifier()
+        {
+            if (_landVehicle == null)
+            {
+                return 1.0f;
+            }
+
+            float modifier = 1.0f;
+
+            if (FuelTypeManager.Instance != null)
+            {
+                modifier = FuelTypeManager.Instance.GetFuelEfficiency(
+                    _currentFuelType,
+                    _vehicleType,
+                    _landVehicle.speed_Kmh,
+                    _landVehicle.currentThrottle);
+            }
+
+            float qualityPenalty = Mathf.Lerp(1.0f, 1.25f, 1.0f - Mathf.Clamp01(_fuelQuality));
+            return modifier * qualityPenalty;
         }
 
         /// <summary>
@@ -501,7 +575,8 @@ namespace S1FuelMod.Systems
             maxFuelCapacity = data.MaxFuelCapacity;
             currentFuelLevel = data.CurrentFuelLevel;
             baseFuelConsumptionRate = data.FuelConsumptionRate;
-            
+            InitializeFuelTypeState();
+
             TriggerFuelLevelChanged();
             ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... fuel data loaded");
         }
@@ -528,6 +603,7 @@ namespace S1FuelMod.Systems
             currentFuelLevel = currentLevel;
             SetBaseFuelConsumption();
             maxFuelCapacity = SetMaxFuelCapacity();
+            InitializeFuelTypeState();
 
             TriggerFuelLevelChanged();
             ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... fuel data loaded");
@@ -595,6 +671,89 @@ namespace S1FuelMod.Systems
                     _vehicleType = VehicleType.Other;
                     break;
             }
+        }
+
+        private void InitializeFuelTypeState()
+        {
+            _fuelQuality = 1.0f;
+
+            if (FuelTypeManager.Instance != null)
+            {
+                _currentFuelType = FuelTypeManager.Instance.GetRecommendedFuelType(_vehicleType);
+            }
+            else
+            {
+                _currentFuelType = FuelTypeId.Regular;
+            }
+        }
+
+        public bool ChangeFuelType(FuelTypeId newFuelType, float refuelAmount)
+        {
+            try
+            {
+                if (!IsFuelCompatible(newFuelType))
+                {
+                    ModLogger.Warning($"Fuel type {newFuelType} is not compatible with {_vehicleType}");
+                    return false;
+                }
+
+                if (_currentFuelType != newFuelType && CurrentFuelLevel > 0.1f)
+                {
+                    CalculateFuelMixingEffect(newFuelType, refuelAmount);
+                }
+                else
+                {
+                    _currentFuelType = newFuelType;
+                    _fuelQuality = 1.0f;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error changing fuel type", ex);
+                return false;
+            }
+        }
+
+        private void CalculateFuelMixingEffect(FuelTypeId newFuelType, float refuelAmount)
+        {
+            try
+            {
+                float totalFuel = Mathf.Max(0.01f, CurrentFuelLevel + Mathf.Max(0f, refuelAmount));
+                float oldRatio = Mathf.Clamp01(CurrentFuelLevel / totalFuel);
+                float newRatio = Mathf.Clamp01(Mathf.Max(0f, refuelAmount) / totalFuel);
+
+                if (GetFuelCompatibilityScore(_currentFuelType, newFuelType) < 0.8f)
+                {
+                    _fuelQuality = Mathf.Max(0.7f, _fuelQuality * 0.9f);
+                }
+                else
+                {
+                    // Blend quality towards the better of the two fuels when compatible
+                    _fuelQuality = Mathf.Clamp01(Mathf.Lerp(_fuelQuality, 1.0f, newRatio));
+                }
+
+                if (newRatio > 0.6f || oldRatio < 0.2f)
+                {
+                    _currentFuelType = newFuelType;
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error calculating fuel mixing effect", ex);
+            }
+        }
+
+        private float GetFuelCompatibilityScore(FuelTypeId fuel1, FuelTypeId fuel2)
+        {
+            if (fuel1 == fuel2)
+                return 1.0f;
+
+            if (fuel1 == FuelTypeId.Regular || fuel2 == FuelTypeId.Regular)
+                return 0.8f;
+
+            return 0.6f;
         }
 
         private void OnDestroy()
