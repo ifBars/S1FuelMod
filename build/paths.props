@@ -1,9 +1,9 @@
 ﻿<Project>
     <PropertyGroup>
         <!-- Paths and conditions -->
-        <S1MonoDir>D:\Schedule 1 Modding\Schedule I_alternate-beta</S1MonoDir>
-        <S1CPPDir>D:\Schedule 1 Modding\Schedule I_beta</S1CPPDir>
-        <CommonDir>D:\Schedule 1 Modding\</CommonDir>
+        <S1MonoDir>C:\Users\Tyler\Documents\Development\Schedule 1 Developer Environment\branches\alternate-branch\manifest_941591400057088607</S1MonoDir>
+        <S1CPPDir>C:\Users\Tyler\Documents\Development\Schedule 1 Developer Environment\branches\main-branch\manifest_5895781832173514260</S1CPPDir>
+        <CommonDir>C:\Users\Tyler\Documents\Development\Schedule 1 Developer Environment</CommonDir>
         <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
     </PropertyGroup>
 </Project>

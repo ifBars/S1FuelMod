@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 # Cursor Memory Files
 assets/memories/
+/.claude
+build/paths.props
+.cursor/rules/snyk_rules.mdc
