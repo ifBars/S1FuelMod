@@ -67,6 +67,7 @@ namespace S1FuelMod
         private FuelSystemManager? _fuelSystemManager;
         private FuelUIManager? _fuelUIManager;
         private FuelStationManager? _fuelStationManager;
+        private FuelSignManager? _fuelSignManager;
 
         // Public properties for accessing preferences
         public bool EnableFuelSystem => _enableFuelSystem?.Value ?? true;
@@ -453,6 +454,18 @@ namespace S1FuelMod
                 _fuelStationManager = new FuelStationManager();
                 ModLogger.Debug("Fuel station manager initialized");
 
+                // Initialize fuel sign manager
+                if (FuelSignManager.Instance != null)
+                {
+                    _fuelSignManager = FuelSignManager.Instance;
+                }
+                else
+                {
+                    var fuelSignManagerObject = new GameObject("S1FuelSignManager");
+                    _fuelSignManager = fuelSignManagerObject.AddComponent<FuelSignManager>();
+                }
+                ModLogger.Debug("Fuel sign manager initialized");
+
                 ModLogger.Debug("All fuel systems initialized successfully");
             }
             catch (Exception ex)
@@ -558,6 +571,14 @@ namespace S1FuelMod
         }
 
         /// <summary>
+        /// Get the fuel sign manager instance
+        /// </summary>
+        public FuelSignManager? GetFuelSignManager()
+        {
+            return _fuelSignManager;
+        }
+
+        /// <summary>
         /// Refresh all active fuel gauges to apply preference changes
         /// </summary>
         public void RefreshFuelGauges()
@@ -587,6 +608,42 @@ namespace S1FuelMod
             catch (Exception ex)
             {
                 ModLogger.Error("Error handling new gauge UI preference change", ex);
+            }
+        }
+
+        /// <summary>
+        /// Handle fuel pricing preference changes
+        /// Call this method when fuel pricing preferences change
+        /// </summary>
+        public void OnFuelPricingPreferenceChanged()
+        {
+            try
+            {
+                ModLogger.Info($"Fuel pricing preferences changed - Dynamic: {EnableDynamicPricing}, Tier: {EnablePricingOnTier}, Curfew: {EnableCurfewFuelTax}");
+                UpdateFuelSigns();
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error handling fuel pricing preference change", ex);
+            }
+        }
+
+        /// <summary>
+        /// Update all fuel signs with current prices
+        /// </summary>
+        public void UpdateFuelSigns()
+        {
+            try
+            {
+                if (_fuelSignManager != null)
+                {
+                    _fuelSignManager.UpdateAllFuelSigns();
+                    ModLogger.Debug("Fuel signs updated with current prices");
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error updating fuel signs", ex);
             }
         }
     }

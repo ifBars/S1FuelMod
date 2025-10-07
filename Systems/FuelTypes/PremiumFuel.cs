@@ -25,16 +25,16 @@ namespace S1FuelMod.Systems.FuelTypes
         public override FuelTypeId Id => FuelTypeId.Premium;
         public override string DisplayName => "Premium";
         public override string Description => "High-octane fuel for performance vehicles.";
-        public override float PriceMultiplier => 1.35f;
-        public override float ConsumptionEfficiency => 0.95f;
-        public override float TorqueModifier => 1.08f;
-        public override float AccelerationModifier => 1.12f;
-        public override float TopSpeedModifier => 1.06f;
+        public override float PriceMultiplier => 1.40f;
+        public override float ConsumptionEfficiency => 0.85f;
+        public override float TorqueModifier => 1.12f;
+        public override float AccelerationModifier => 1.18f;
+        public override float TopSpeedModifier => 1.08f;
         public override Color UIColor => PremiumFuelColor;
 
         public override (float minOptimalSpeed, float maxOptimalSpeed) GetOptimalSpeedRange()
         {
-            return (60f, 85f);
+            return (65f, 90f);
         }
 
         protected override HashSet<VehicleType> GetCompatibleVehicleTypes()

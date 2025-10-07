@@ -9,6 +9,8 @@ using ScheduleOne.Persistence.Loaders;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Vehicles;
 using ScheduleOne.NPCs.CharacterClasses;
+using ScheduleOne.Equipping;
+using ScheduleOne.ItemFramework;
 #else
 using Il2CppScheduleOne.NPCs.CharacterClasses;
 using Il2CppNewtonsoft.Json.Linq;
@@ -17,6 +19,8 @@ using Il2CppScheduleOne.Persistence.Datas;
 using Il2CppScheduleOne.Persistence.Loaders;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Vehicles;
+using Il2CppScheduleOne.Equipping;
+using Il2CppScheduleOne.ItemFramework;
 #endif
 using UnityEngine;
 
@@ -750,6 +754,128 @@ namespace S1FuelMod.Integrations
             }
         }
 
+        /// <summary>
+        /// Patch Equippable.Equip to automatically add gasoline can functionality
+        /// </summary>
+        [HarmonyPatch(typeof(Equippable), "Equip")]
+        [HarmonyPostfix]
+        public static void Equippable_Equip_Postfix(Equippable __instance, ItemInstance item)
+        {
+            try
+            {
+                // Debug: Log all equips to see what's happening
+                ModLogger.Debug($"Equippable_Equip_Postfix: Item ID = {item?.ID}, Instance = {__instance?.name}");
+                
+                // Only proceed if fuel system is enabled and this is a gasoline item
+                if (_modInstance?.EnableFuelSystem != true || item?.ID?.ToLower() != "gasoline")
+                {
+                    ModLogger.Debug("Not gasoline, returning");
+                    return;
+                }
 
+                ModLogger.Debug("Gasoline item detected, checking for existing component...");
+
+                // Check if this equippable already has the gasoline can component
+                if (__instance.GetComponent<Equippable_GasolineCan>() != null)
+                {
+                    ModLogger.Debug("Equippable_GasolineCan component already exists, skipping");
+                    return;
+                }
+
+                // Add the gasoline can component to the equippable
+                var gasolineCanComponent = __instance.gameObject.AddComponent<Equippable_GasolineCan>();
+                
+                ModLogger.Debug("Successfully added Equippable_GasolineCan component to gasoline item");
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error adding gasoline can functionality to equippable", ex);
+            }
+        }
+
+        /// <summary>
+        /// IL2CPP-safe hook: after HotbarSlot.Equip instantiates the equippable, attach gasoline can component if needed
+        /// </summary>
+        [HarmonyPatch(typeof(HotbarSlot), "Equip")]
+        [HarmonyPostfix]
+        public static void HotbarSlot_Equip_Postfix(HotbarSlot __instance)
+        {
+            try
+            {
+                if (_modInstance?.EnableFuelSystem != true)
+                {
+                    return;
+                }
+
+                var item = __instance?.ItemInstance;
+                var equippable = __instance?.Equippable;
+
+                if (item == null || equippable == null)
+                {
+                    return;
+                }
+
+                ModLogger.Debug($"HotbarSlot_Equip_Postfix: Item ID = {item.ID}, Equippable = {equippable.name}");
+
+                if (item.ID?.ToLower() != "gasoline")
+                {
+                    return;
+                }
+
+                if (equippable.GetComponent<Equippable_GasolineCan>() != null)
+                {
+                    return;
+                }
+
+                equippable.gameObject.AddComponent<Equippable_GasolineCan>();
+                ModLogger.Debug("HotbarSlot_Equip_Postfix: Added Equippable_GasolineCan to equipped gasoline item");
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error in HotbarSlot.Equip postfix for gasoline can", ex);
+            }
+        }
+
+        /// <summary>
+        /// Coverage for alternative equip path: HotbarSlot.SetStoredItem can equip when slot already marked as equipped
+        /// </summary>
+        [HarmonyPatch(typeof(HotbarSlot), "SetStoredItem")]
+        [HarmonyPostfix]
+        public static void HotbarSlot_SetStoredItem_Postfix(HotbarSlot __instance)
+        {
+            try
+            {
+                if (_modInstance?.EnableFuelSystem != true)
+                {
+                    return;
+                }
+
+                var item = __instance?.ItemInstance;
+                var equippable = __instance?.Equippable;
+
+                if (item == null || equippable == null)
+                {
+                    return;
+                }
+
+                // Only attach for gasoline
+                if (item.ID?.ToLower() != "gasoline")
+                {
+                    return;
+                }
+
+                if (equippable.GetComponent<Equippable_GasolineCan>() != null)
+                {
+                    return;
+                }
+
+                equippable.gameObject.AddComponent<Equippable_GasolineCan>();
+                ModLogger.Debug("HotbarSlot_SetStoredItem_Postfix: Added Equippable_GasolineCan to equipped gasoline item");
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error in HotbarSlot.SetStoredItem postfix for gasoline can", ex);
+            }
+        }
     }
 }

@@ -72,6 +72,14 @@ namespace S1FuelMod.Systems
         private float _totalFuelAdded;
         private float _totalCost;
 
+        // Caching for performance optimization
+        private LandVehicle _cachedVehicle;
+        private FuelTypeId[] _cachedCompatibleFuelTypes = EmptyFuelTypes;
+        private FuelTypeId _cachedSelectedFuelType = FuelTypeId.Regular;
+        private float _cachedPricePerLiter = 1f;
+        private float _lastPriceUpdateTime = 0f;
+        private const float PRICE_CACHE_DURATION = 1f; // Cache prices for 1 second
+
         // Components
         private MoneyManager _moneyManager;
         private FuelSystemManager _fuelSystemManager;
@@ -160,15 +168,20 @@ namespace S1FuelMod.Systems
                         var fuelSystem = _fuelSystemManager?.GetFuelSystem(nearbyVehicle.GUID.ToString());
                         if (fuelSystem != null)
                         {
-                            PrepareFuelSelection(fuelSystem);
+                            // Use cached data if same vehicle, otherwise prepare new fuel selection
+                            if (_cachedVehicle != nearbyVehicle)
+                            {
+                                PrepareFuelSelectionCached(fuelSystem, nearbyVehicle);
+                            }
+
                             float fuelNeeded = fuelSystem.MaxFuelCapacity - fuelSystem.CurrentFuelLevel;
-                            float selectedPrice = pricePerLiter;
+                            float selectedPrice = _cachedPricePerLiter;
                             float estimatedCost = fuelNeeded * selectedPrice;
-                            string fuelTypeName = GetFuelTypeDisplayName(_selectedFuelType);
+                            string fuelTypeName = GetFuelTypeDisplayName(_cachedSelectedFuelType);
 
                             if (fuelNeeded > 0.1f) // Only show if vehicle needs fuel
                             {
-                                string compatibilityTag = BuildFuelCompatibilityTag(fuelSystem, _selectedFuelType);
+                                string compatibilityTag = BuildFuelCompatibilityTag(fuelSystem, _cachedSelectedFuelType);
                                 SetMessage($"Refuel {nearbyVehicle.VehicleName} [{fuelTypeName}{compatibilityTag}] - {MoneyManager.FormatAmount(estimatedCost)} | ${selectedPrice:F2}/L");
                                 SetInteractableState(EInteractableState.Default);
                             }
@@ -274,7 +287,16 @@ namespace S1FuelMod.Systems
                     return;
                 }
 
-                PrepareFuelSelection(_targetFuelSystem);
+                // Use cached data if available, otherwise prepare new fuel selection
+                if (_cachedVehicle != _targetVehicle)
+                {
+                    PrepareFuelSelectionCached(_targetFuelSystem, _targetVehicle);
+                }
+                
+                // Update the non-cached variables for compatibility with existing code
+                _selectedFuelType = _cachedSelectedFuelType;
+                pricePerLiter = _cachedPricePerLiter;
+                _compatibleFuelTypes = _cachedCompatibleFuelTypes;
 
                 // Check if vehicle needs fuel
                 float fuelNeeded = _targetFuelSystem.MaxFuelCapacity - _targetFuelSystem.CurrentFuelLevel;
@@ -565,6 +587,55 @@ namespace S1FuelMod.Systems
             pricePerLiter = GetSelectedFuelPrice();
         }
 
+        /// <summary>
+        /// Prepare fuel selection with caching for performance optimization
+        /// Only recalculates when vehicle changes or prices need updating
+        /// </summary>
+        /// <param name="fuelSystem">The vehicle's fuel system</param>
+        /// <param name="vehicle">The vehicle being refueled</param>
+        private void PrepareFuelSelectionCached(VehicleFuelSystem fuelSystem, LandVehicle vehicle)
+        {
+            if (fuelSystem == null)
+            {
+                _cachedSelectedFuelType = FuelTypeId.Regular;
+                _cachedPricePerLiter = Constants.Fuel.FUEL_PRICE_PER_LITER;
+                _cachedVehicle = vehicle;
+                return;
+            }
+
+            // Cache vehicle-specific data
+            _cachedVehicle = vehicle;
+            _cachedCompatibleFuelTypes = GetCompatibleFuelTypesForVehicle(fuelSystem);
+
+            FuelTypeId preferred = fuelSystem.GetRecommendedFuelType();
+
+            if (!IsFuelTypeCompatibleCached(preferred))
+            {
+                preferred = GetFallbackFuelTypeCached();
+            }
+
+            if (!IsFuelTypeCompatibleCached(_cachedSelectedFuelType))
+            {
+                _cachedSelectedFuelType = preferred;
+            }
+
+            if (!IsFuelTypeCompatibleCached(_cachedSelectedFuelType))
+            {
+                _cachedSelectedFuelType = FuelTypeId.Regular;
+            }
+
+            // Only update prices if cache is expired or this is a new vehicle
+            if (Time.time - _lastPriceUpdateTime > PRICE_CACHE_DURATION)
+            {
+                UpdatePriceCache();
+            }
+
+            _cachedPricePerLiter = GetSelectedFuelPriceCached();
+        }
+
+        #if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+        #endif
         private FuelTypeId[] GetCompatibleFuelTypesForVehicle(VehicleFuelSystem fuelSystem)
         {
             if (fuelSystem == null || FuelTypeManager.Instance == null)
@@ -611,6 +682,69 @@ namespace S1FuelMod.Systems
             }
 
             return FuelTypeId.Regular;
+        }
+
+        /// <summary>
+        /// Check if fuel type is compatible using cached compatible fuel types
+        /// </summary>
+        private bool IsFuelTypeCompatibleCached(FuelTypeId fuelType)
+        {
+            if (_cachedCompatibleFuelTypes == null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < _cachedCompatibleFuelTypes.Length; i++)
+            {
+                if (_cachedCompatibleFuelTypes[i] == fuelType)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Get fallback fuel type using cached compatible fuel types
+        /// </summary>
+        private FuelTypeId GetFallbackFuelTypeCached()
+        {
+            if (_cachedCompatibleFuelTypes != null && _cachedCompatibleFuelTypes.Length > 0)
+            {
+                return _cachedCompatibleFuelTypes[0];
+            }
+
+            return FuelTypeId.Regular;
+        }
+
+        /// <summary>
+        /// Get selected fuel price using cached data
+        /// </summary>
+        private float GetSelectedFuelPriceCached()
+        {
+            return GetFuelPriceForType(_cachedSelectedFuelType);
+        }
+
+        /// <summary>
+        /// Update price cache with current pricing calculations
+        /// </summary>
+        private void UpdatePriceCache()
+        {
+            SetFuelPrice();
+            _lastPriceUpdateTime = Time.time;
+        }
+
+        /// <summary>
+        /// Clear the fuel selection cache (useful when prices change significantly)
+        /// </summary>
+        private void ClearFuelSelectionCache()
+        {
+            _cachedVehicle = null;
+            _cachedCompatibleFuelTypes = EmptyFuelTypes;
+            _cachedSelectedFuelType = FuelTypeId.Regular;
+            _cachedPricePerLiter = Constants.Fuel.FUEL_PRICE_PER_LITER;
+            _lastPriceUpdateTime = 0f;
         }
 
         private float GetSelectedFuelPrice()
@@ -867,6 +1001,9 @@ namespace S1FuelMod.Systems
 
             UpdateFuelTypePriceCache(basePrice);
             pricePerLiter = GetSelectedFuelPrice();
+            
+            // Invalidate cache when prices change
+            _lastPriceUpdateTime = 0f;
         }
 
         private float GetTierMultiplier()
@@ -963,6 +1100,28 @@ namespace S1FuelMod.Systems
                 }
 
                 _fuelTypePrices[fuelTypeId] = price;
+            }
+
+            // Update fuel signs when prices change
+            UpdateFuelSigns();
+        }
+
+        /// <summary>
+        /// Update all fuel signs with current prices immediately
+        /// </summary>
+        private void UpdateFuelSigns()
+        {
+            try
+            {
+                if (FuelSignManager.Instance != null)
+                {
+                    // Use ForceUpdateAllSigns for immediate updates when prices change
+                    FuelSignManager.Instance.ForceUpdateAllSigns();
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Debug($"Error updating fuel signs: {ex.Message}");
             }
         }
 

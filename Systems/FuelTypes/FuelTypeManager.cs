@@ -55,12 +55,16 @@ namespace S1FuelMod.Systems.FuelTypes
             _fuelTypes.Clear();
 
             RegisterFuelType(new RegularFuel());
+            RegisterFuelType(new MidGradeFuel());
             RegisterFuelType(new PremiumFuel());
             RegisterFuelType(new DieselFuel());
 
             BuildRecommendationMatrix();
         }
 
+        #if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+        #endif
         private void RegisterFuelType(FuelType fuelType)
         {
             if (fuelType == null)
@@ -76,27 +80,32 @@ namespace S1FuelMod.Systems.FuelTypes
         {
             _recommendedFuelTypes.Clear();
 
+            // Basic vehicles - Regular fuel
             SetRecommendation(VehicleType.Shitbox, FuelTypeId.Regular);
             SetRecommendation(VehicleType.Veeper, FuelTypeId.Regular);
             SetRecommendation(VehicleType.Hotbox, FuelTypeId.Regular);
             SetRecommendation(VehicleType.CanOfSoupCar, FuelTypeId.Regular);
             SetRecommendation(VehicleType.Other, FuelTypeId.Regular);
 
-            SetRecommendation(VehicleType.Bruiser, FuelTypeId.Diesel);
-            SetRecommendation(VehicleType.Dinkler, FuelTypeId.Diesel);
-            SetRecommendation(VehicleType.CyberTruck, FuelTypeId.Diesel);
+            // Mid-tier vehicles - Mid-Grade fuel
+            SetRecommendation(VehicleType.Hounddog, FuelTypeId.MidGrade);
+            SetRecommendation(VehicleType.Cheetah, FuelTypeId.MidGrade);
+            SetRecommendation(VehicleType.Supercar, FuelTypeId.MidGrade);
+            SetRecommendation(VehicleType.Demon, FuelTypeId.MidGrade);
+            SetRecommendation(VehicleType.Driftcar, FuelTypeId.MidGrade);
 
-            SetRecommendation(VehicleType.Hounddog, FuelTypeId.Premium);
-            SetRecommendation(VehicleType.Cheetah, FuelTypeId.Premium);
-            SetRecommendation(VehicleType.Supercar, FuelTypeId.Premium);
+            // High-end vehicles - Premium fuel
             SetRecommendation(VehicleType.BugattiTourbillon, FuelTypeId.Premium);
             SetRecommendation(VehicleType.GTR_R34, FuelTypeId.Premium);
             SetRecommendation(VehicleType.GTR_R35, FuelTypeId.Premium);
             SetRecommendation(VehicleType.LamborghiniVeneno, FuelTypeId.Premium);
             SetRecommendation(VehicleType.RollsRoyceGhost, FuelTypeId.Premium);
             SetRecommendation(VehicleType.KoenigseggCC850, FuelTypeId.Premium);
-            SetRecommendation(VehicleType.Demon, FuelTypeId.Premium);
-            SetRecommendation(VehicleType.Driftcar, FuelTypeId.Premium);
+
+            // Heavy vehicles - Diesel fuel
+            SetRecommendation(VehicleType.Bruiser, FuelTypeId.Diesel);
+            SetRecommendation(VehicleType.Dinkler, FuelTypeId.Diesel);
+            SetRecommendation(VehicleType.CyberTruck, FuelTypeId.Diesel);
         }
 
         private void SetRecommendation(VehicleType vehicleType, FuelTypeId fuelTypeId)
@@ -116,6 +125,9 @@ namespace S1FuelMod.Systems.FuelTypes
             return _fuelTypes.TryGetValue(fuelTypeId, out var fuelType) && fuelType.IsCompatibleWith(vehicleType);
         }
 
+        #if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+        #endif
         public FuelType? GetFuelType(FuelTypeId fuelTypeId)
         {
             return _fuelTypes.TryGetValue(fuelTypeId, out var fuelType) ? fuelType : null;
@@ -176,6 +188,9 @@ namespace S1FuelMod.Systems.FuelTypes
             return fuelType.CalculateConsumptionModifier(speedKmh, throttleInput, vehicleType);
         }
 
+        #if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+        #endif
         public FuelTypeId[] GetCompatibleFuelTypesArray(VehicleType vehicleType)
         {
             var compatible = new List<FuelTypeId>();

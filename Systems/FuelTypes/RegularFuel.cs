@@ -30,7 +30,7 @@ namespace S1FuelMod.Systems.FuelTypes
 
         public override (float minOptimalSpeed, float maxOptimalSpeed) GetOptimalSpeedRange()
         {
-            return (45f, 65f);
+            return (40f, 60f);
         }
 
         protected override HashSet<VehicleType> GetCompatibleVehicleTypes()

@@ -3,7 +3,8 @@ namespace S1FuelMod.Utils
     public enum FuelTypeId
     {
         Regular = 0,
-        Premium = 1,
-        Diesel = 2
+        MidGrade = 1,
+        Premium = 2,
+        Diesel = 3
     }
 }
