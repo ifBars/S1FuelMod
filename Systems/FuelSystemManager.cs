@@ -162,6 +162,9 @@ namespace S1FuelMod.Systems
                 _vehicleFuelSystems[vehicleGUID] = fuelSystem;
                 _network.RegisterFuelSystem(fuelSystem);
 
+                // Add refuel interactable component
+                vehicle.gameObject.AddComponent<VehicleRefuelInteractable>();
+
                 ModLogger.Debug($"FuelSystemManager: Added fuel system to {vehicle.VehicleName} ({vehicleGUID.Substring(0, 8)}...)");
                 return fuelSystem;
             }

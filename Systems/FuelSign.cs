@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using MelonLoader;
 using UnityEngine;
 using S1FuelMod.Utils;
 using S1FuelMod.Systems.FuelTypes;
@@ -9,7 +6,6 @@ using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.GameTime;
 using Il2CppScheduleOne.Law;
 using Il2CppScheduleOne.Levelling;
-using Il2CppInterop.Runtime.Attributes;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppTMPro;
 #else

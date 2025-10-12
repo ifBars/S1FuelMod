@@ -1,11 +1,8 @@
-using MelonLoader;
 using UnityEngine;
 using S1FuelMod.Utils;
-using S1FuelMod.Systems.FuelTypes;
 #if !MONO
-using Il2CppInterop.Runtime.Attributes;
 using Il2CppInterop.Runtime.Injection;
-using Il2CppTMPro;
+
 // using Il2CppSystem.Collections.Generic;
 #else
 using TMPro;
@@ -87,14 +84,18 @@ namespace S1FuelMod.Systems
 
                 _instance = this;
                 DontDestroyOnLoad(gameObject);
-
-                InitializeFuelSigns();
+                
                 ModLogger.Debug("FuelSignManager initialized successfully");
             }
             catch (Exception ex)
             {
                 ModLogger.Error("Error in FuelSignManager.Awake", ex);
             }
+        }
+
+        private void Start()
+        {
+            InitializeFuelSigns();
         }
 
         private void Update()

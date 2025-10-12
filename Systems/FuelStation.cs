@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using S1FuelMod.Systems.FuelTypes;
+﻿using S1FuelMod.Systems.FuelTypes;
 using S1FuelMod.Utils;
 #if MONO
 using ScheduleOne.DevUtilities;
@@ -20,16 +17,12 @@ using Il2CppScheduleOne.GameTime;
 using Il2CppScheduleOne.Interaction;
 using Il2CppScheduleOne.Levelling;
 using Il2CppScheduleOne.Money;
-using Il2CppScheduleOne.Persistence.Datas;
-using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Vehicles;
 using Il2CppScheduleOne.Law;
 using Il2CppScheduleOne.UI;
 using MelonLoader;
-using Il2CppInterop.Runtime.Attributes;
 #endif
 using UnityEngine;
-using UnityEngine.Events;
 
 
 namespace S1FuelMod.Systems

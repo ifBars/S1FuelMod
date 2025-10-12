@@ -13,26 +13,20 @@ using ScheduleOne.UI;
 using ScheduleOne;
 #else
 using Il2CppScheduleOne.Equipping;
-using Il2CppScheduleOne.Interaction;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Vehicles;
 using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.ItemFramework;
-using Il2CppScheduleOne.UI;
-using Il2CppScheduleOne;
-using Il2CppInterop.Runtime.Attributes;
 using Il2CppInterop.Runtime.Injection;
 #endif
 
 namespace S1FuelMod.Systems
 {
 #if !MONO
-    [MelonLoader.RegisterTypeInIl2Cpp]
+    [RegisterTypeInIl2Cpp]
 #endif
     public class Equippable_GasolineCan : Equippable
     {
-        public float InteractionRange = 3f;
-
         public float RefuelRate = 3f; // liters per second
 
         public float LitersPerCan = 10f;
@@ -90,131 +84,25 @@ namespace S1FuelMod.Systems
 
         public void Update()
         {
-            // Don't call base.Update() to avoid circular calls
-            TryDetectAndPrompt();
+            // Continue refueling if active
             if (isRefueling)
             {
                 ContinueRefueling();
             }
         }
 
-        private void TryDetectAndPrompt()
+        /// <summary>
+        /// Called by VehicleRefuelInteractable when player starts interacting with a vehicle
+        /// </summary>
+        public void BeginRefuelInteraction(LandVehicle vehicle, VehicleFuelSystem fuelSystem)
         {
-            if (PlayerSingleton<PlayerCamera>.Instance == null)
-            {
-                return;
-            }
-            if (PlayerSingleton<PlayerCamera>.Instance.activeUIElementCount > 0)
-            {
-                return;
-            }
-            if (targetVehicle == null)
-            {
-                targetVehicle = RaycastForVehicle();
-            }
-            if (targetVehicle != null && !isRefueling)
-            {
-                ConfigurePromptForVehicle(targetVehicle);
-                if (GameInput.GetButtonDown(GameInput.ButtonCode.Interact))
-                {
-                    ModLogger.Debug($"Gasoline can: Starting refuel of {targetVehicle.VehicleName}");
-                    BeginRefuel(targetVehicle);
-                }
-            }
-        }
-
-        private LandVehicle RaycastForVehicle()
-        {
-            try
-            {
-                Ray ray = new Ray(PlayerSingleton<PlayerCamera>.Instance.Camera.transform.position, PlayerSingleton<PlayerCamera>.Instance.Camera.transform.forward);
-                int vehicleLayer = LayerMask.NameToLayer("Vehicle");
-                int mask = (vehicleLayer >= 0) ? (1 << vehicleLayer) : Physics.DefaultRaycastLayers;
-                if (Physics.Raycast(ray, out var hit, InteractionRange, mask))
-                {
-                    LandVehicle lv = hit.collider.GetComponentInParent<LandVehicle>();
-                    if (lv != null && lv.IsPlayerOwned)
-                    {
-                        return lv;
-                    }
-                }
-                // Fallback: small sphere around camera
-                Collider[] cols = Physics.OverlapSphere(PlayerSingleton<PlayerCamera>.Instance.Camera.transform.position + PlayerSingleton<PlayerCamera>.Instance.Camera.transform.forward * 1.5f, 1.75f);
-                for (int i = 0; i < cols.Length; i++)
-                {
-                    if (cols[i] == null) continue;
-                    LandVehicle lv2 = cols[i].GetComponentInParent<LandVehicle>();
-                    if (lv2 != null && lv2.IsPlayerOwned)
-                    {
-                        return lv2;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                ModLogger.Debug($"GasCan vehicle detection error: {ex.Message}");
-            }
-            return null;
-        }
-
-        private void ConfigurePromptForVehicle(LandVehicle vehicle)
-        {
-            try
-            {
-                if (Core.Instance?.GetFuelSystemManager() == null) return;
-                
-                var fuelSystem = Core.Instance.GetFuelSystemManager().GetFuelSystem(vehicle.GUID.ToString());
-                if (fuelSystem == null) return;
-
-                string label = vehicle.VehicleName;
-                float fuelNeeded = fuelSystem.MaxFuelCapacity - fuelSystem.CurrentFuelLevel;
-                string fuelTypeName = GetFuelTypeDisplayName(FuelTypeForCan);
-                string compatibilityTag = BuildFuelCompatibilityTag(fuelSystem, FuelTypeForCan);
-
-                if (fuelNeeded > 0.1f) // Only show if vehicle needs fuel
-                {
-                    string message = $"Refuel {label} [{fuelTypeName}{compatibilityTag}] (Hold)";
-                    Singleton<InteractionCanvas>.Instance.EnableInteractionDisplay(
-                        vehicle.transform.position, 
-                        Singleton<InteractionCanvas>.Instance.KeyIcon, 
-                        Singleton<InteractionManager>.Instance.InteractKeyStr, 
-                        message, 
-                        Singleton<InteractionCanvas>.Instance.DefaultMessageColor, 
-                        Singleton<InteractionCanvas>.Instance.DefaultKeyColor);
-                }
-                else
-                {
-                    string message = $"{label} - Tank Full";
-                    Singleton<InteractionCanvas>.Instance.EnableInteractionDisplay(
-                        vehicle.transform.position, 
-                        Singleton<InteractionCanvas>.Instance.CrossIcon, 
-                        "", 
-                        message, 
-                        Singleton<InteractionCanvas>.Instance.InvalidMessageColor, 
-                        Singleton<InteractionCanvas>.Instance.InvalidIconColor);
-                }
-            }
-            catch (Exception ex)
-            {
-                ModLogger.Debug($"Error configuring prompt for vehicle: {ex.Message}");
-            }
-        }
-
-        private void BeginRefuel(LandVehicle vehicle)
-        {
-            if (Core.Instance == null || Core.Instance.GetFuelSystemManager() == null)
-            {
-                return;
-            }
-            var fsm = Core.Instance.GetFuelSystemManager();
-            targetFuelSystem = fsm.GetFuelSystem(vehicle.GUID.ToString());
-            if (targetFuelSystem == null)
+            if (vehicle == null || fuelSystem == null)
             {
                 return;
             }
 
             // Check if vehicle needs fuel
-            float fuelNeeded = targetFuelSystem.MaxFuelCapacity - targetFuelSystem.CurrentFuelLevel;
+            float fuelNeeded = fuelSystem.MaxFuelCapacity - fuelSystem.CurrentFuelLevel;
             if (fuelNeeded <= 0.1f)
             {
                 ShowMessage("Vehicle tank is already full!", MessageType.Warning);
@@ -226,15 +114,24 @@ namespace S1FuelMod.Systems
             totalFuelAdded = 0f;
             refuelStartTime = Time.time;
             targetVehicle = vehicle;
+            targetFuelSystem = fuelSystem;
 
             // Show appropriate fuel gauge when starting refueling
             ShowFuelGaugeForVehicle(vehicle);
 
             string fuelTypeName = GetFuelTypeDisplayName(FuelTypeForCan);
-            string compatibilityTag = BuildFuelCompatibilityTag(targetFuelSystem, FuelTypeForCan);
+            string compatibilityTag = BuildFuelCompatibilityTag(fuelSystem, FuelTypeForCan);
             ShowMessage($"Refueling {vehicle.VehicleName} with {fuelTypeName}{compatibilityTag}...", MessageType.Info);
             
             ModLogger.Debug($"Started refueling {vehicle.VehicleName} with gasoline can");
+        }
+
+        /// <summary>
+        /// Called by VehicleRefuelInteractable when player stops interacting
+        /// </summary>
+        public void EndRefuelInteraction()
+        {
+            StopRefuel();
         }
 
         private void ContinueRefueling()
@@ -299,12 +196,6 @@ namespace S1FuelMod.Systems
                 pendingCanConsumption += actuallyAdded;
                 totalFuelAdded += actuallyAdded;
                 ConsumeUnitsIfNeeded(slot);
-            }
-
-            // Stop if input released
-            if (!GameInput.GetButton(GameInput.ButtonCode.Interact))
-            {
-                StopRefuel();
             }
         }
 

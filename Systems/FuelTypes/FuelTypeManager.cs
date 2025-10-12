@@ -1,12 +1,9 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 #if !MONO
-using Il2CppInterop.Runtime.Attributes;
 #endif
-using S1FuelMod.Systems;
 using S1FuelMod.Utils;
 using MelonLoader;
+using Il2CppInterop.Runtime.Injection;
 
 namespace S1FuelMod.Systems.FuelTypes
 {
@@ -26,6 +23,14 @@ namespace S1FuelMod.Systems.FuelTypes
         /// IL2CPP constructor required for RegisterTypeInIl2Cpp
         /// </summary>
         public FuelTypeManager(IntPtr ptr) : base(ptr) { }
+
+        /// <summary>
+        /// Mono-side constructor for instantiation from managed code
+        /// </summary>
+        public FuelTypeManager() : base(ClassInjector.DerivedConstructorPointer<FuelTypeManager>())
+        {
+            ClassInjector.DerivedConstructorBody(this);
+        }
 #endif
 
         private void Awake()
