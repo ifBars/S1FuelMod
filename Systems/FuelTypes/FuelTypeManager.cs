@@ -1,9 +1,10 @@
 using UnityEngine;
 #if !MONO
+using Il2CppInterop.Runtime.Injection;
 #endif
 using S1FuelMod.Utils;
 using MelonLoader;
-using Il2CppInterop.Runtime.Injection;
+
 
 namespace S1FuelMod.Systems.FuelTypes
 {

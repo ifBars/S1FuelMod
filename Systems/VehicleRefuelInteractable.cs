@@ -100,8 +100,8 @@ namespace S1FuelMod.Systems
                 if (fuelNeeded > 0.1f)
                 {
                     // Vehicle needs fuel - show refuel prompt
-                    string fuelTypeName = GetFuelTypeDisplayName(_activeGasCan.FuelTypeForCan);
-                    string compatibilityTag = BuildFuelCompatibilityTag(_fuelSystem, _activeGasCan.FuelTypeForCan);
+                    string fuelTypeName = GetFuelTypeDisplayName(_fuelSystem.CurrentFuelType);
+                    string compatibilityTag = BuildFuelCompatibilityTag(_fuelSystem, _fuelSystem.CurrentFuelType);
                     
                     SetMessage($"Refuel {_vehicle.VehicleName} [{fuelTypeName}{compatibilityTag}] (Hold)");
                     SetInteractableState(EInteractableState.Default);

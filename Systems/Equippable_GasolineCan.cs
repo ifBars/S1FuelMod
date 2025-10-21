@@ -3,12 +3,15 @@ using S1FuelMod.Systems.FuelTypes;
 using UnityEngine;
 using UnityEngine.Rendering;
 using S1FuelMod.Utils;
+
+
 #if MONO
 using ScheduleOne.Equipping;
 using ScheduleOne.Interaction;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Vehicles;
 using ScheduleOne.DevUtilities;
+using ScheduleOne.ItemFramework;
 using ScheduleOne.UI;
 using ScheduleOne;
 #else
@@ -100,6 +103,9 @@ namespace S1FuelMod.Systems
             {
                 return;
             }
+
+            var recommendedFuelType = fuelSystem.CurrentFuelType;
+            FuelTypeForCan = recommendedFuelType;
 
             // Check if vehicle needs fuel
             float fuelNeeded = fuelSystem.MaxFuelCapacity - fuelSystem.CurrentFuelLevel;
@@ -214,6 +220,19 @@ namespace S1FuelMod.Systems
             }
         }
 
+        private void ConsumeOnFinish(HotbarSlot slot)         {
+            while (pendingCanConsumption > 0f && slot != null && slot.ItemInstance != null)
+            {
+                slot.ChangeQuantity(-1);
+                pendingCanConsumption -= LitersPerCan;
+                if (slot.Quantity <= 0)
+                {
+                    slot.ClearStoredInstance();
+                    break;
+                }
+            }
+        }
+
         private void StopRefuel()
         {
             if (!isRefueling) return;
@@ -229,6 +248,7 @@ namespace S1FuelMod.Systems
             {
                 string fuelTypeName = GetFuelTypeDisplayName(FuelTypeForCan);
                 ShowMessage($"Refueled {totalFuelAdded:F1}L of {fuelTypeName} with gasoline can", MessageType.Success);
+                ConsumeOnFinish(PlayerSingleton<PlayerInventory>.Instance.equippedSlot);
                 ModLogger.Debug($"Completed gasoline can refueling: {totalFuelAdded:F1}L of {fuelTypeName}");
             }
             else if (targetVehicle != null)
