@@ -142,15 +142,16 @@ namespace S1FuelMod.Systems
                 if (_landVehicle != null)
                 {
 #if !MONO
+                    _landVehicle.onVehicleStart += new Action(OnVehicleStarted);
                     if (_landVehicle.onVehicleStart != null)
-                        _landVehicle.onVehicleStart.AddListener(new Action(OnVehicleStarted));
+                        _landVehicle.onVehicleStart += new Action(OnVehicleStarted);
                     if (_landVehicle.onVehicleStop != null)
-                        _landVehicle.onVehicleStop.AddListener(new Action(OnVehicleStopped));
+                        _landVehicle.onVehicleStop += new Action(OnVehicleStopped);
 #else
                     if (_landVehicle.onVehicleStart != null)
-                        _landVehicle.onVehicleStart.AddListener(OnVehicleStarted);
+                        _landVehicle.onVehicleStart += OnVehicleStarted;
                     if (_landVehicle.onVehicleStop != null)
-                        _landVehicle.onVehicleStop.AddListener(OnVehicleStopped);
+                        _landVehicle.onVehicleStop += OnVehicleStopped;
 #endif
                 }
 
@@ -170,7 +171,7 @@ namespace S1FuelMod.Systems
         {
             try
             {
-                if (!_landVehicle.localPlayerIsDriver)
+                if (!_landVehicle.LocalPlayerIsDriver)
                     return;
 
                 // Update engine running state
@@ -269,7 +270,7 @@ namespace S1FuelMod.Systems
             if (_landVehicle == null) return;
 
             // Engine should be running if vehicle is occupied (player is in it)
-            bool shouldBeRunning = _landVehicle.isOccupied;
+            bool shouldBeRunning = _landVehicle.IsOccupied;
 
             if (shouldBeRunning != _isEngineRunning)
             {
@@ -283,7 +284,7 @@ namespace S1FuelMod.Systems
                 }
                 
                 ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... engine state changed: {_isEngineRunning} " +
-                                   $"(occupied: {_landVehicle.isOccupied}, throttle: {_landVehicle.currentThrottle:F2}, speed: {_landVehicle.speed_Kmh:F1})");
+                                   $"(occupied: {_landVehicle.IsOccupied}, throttle: {_landVehicle.currentThrottle:F2}, speed: {_landVehicle.Speed_Kmh:F1})");
             }
         }
 
@@ -305,7 +306,7 @@ namespace S1FuelMod.Systems
                 return;
             }
 
-            float speedMultiplier = CalculateAdvancedSpeedMultiplier(_landVehicle.speed_Kmh);
+            float speedMultiplier = CalculateAdvancedSpeedMultiplier(_landVehicle.Speed_Kmh);
             float fuelTypeModifier = GetCurrentFuelEfficiencyModifier();
 
             float finalConsumption = baseConsumption * speedMultiplier * fuelTypeModifier;
@@ -316,7 +317,7 @@ namespace S1FuelMod.Systems
             }
 
             float fuelConsumed = (finalConsumption / 3600f) * deltaTime;
-            if (fuelConsumed > 0.0005f && _landVehicle.isOccupied)
+            if (fuelConsumed > 0.0005f && _landVehicle.IsOccupied)
             {
                 ConsumeFuel(fuelConsumed);
             }
@@ -333,7 +334,7 @@ namespace S1FuelMod.Systems
                 return Mathf.Lerp(idleConsumptionRate, baseFuelConsumptionRate, absoluteThrottle);
             }
 
-            if (_landVehicle != null && _landVehicle.isOccupied)
+            if (_landVehicle != null && _landVehicle.IsOccupied)
             {
                 return idleConsumptionRate;
             }
@@ -373,7 +374,7 @@ namespace S1FuelMod.Systems
                 modifier = FuelTypeManager.Instance.GetFuelEfficiency(
                     _currentFuelType,
                     _vehicleType,
-                    _landVehicle.speed_Kmh,
+                    _landVehicle.Speed_Kmh,
                     _landVehicle.currentThrottle);
             }
 
@@ -765,14 +766,14 @@ namespace S1FuelMod.Systems
                 {
 #if !MONO
                     if (_landVehicle.onVehicleStart != null)
-                        _landVehicle.onVehicleStart.RemoveListener(new System.Action(OnVehicleStarted));
+                        _landVehicle.onVehicleStart -= new Action(OnVehicleStarted);
                     if (_landVehicle.onVehicleStop != null)
-                        _landVehicle.onVehicleStop.RemoveListener(new System.Action(OnVehicleStopped));
+                        _landVehicle.onVehicleStop -= new Action(OnVehicleStopped);
 #else
                     if (_landVehicle.onVehicleStart != null)
-                        _landVehicle.onVehicleStart.RemoveListener(OnVehicleStarted);
+                        _landVehicle.onVehicleStart -= OnVehicleStarted;
                     if (_landVehicle.onVehicleStop != null)
-                        _landVehicle.onVehicleStop.RemoveListener(OnVehicleStopped);
+                        _landVehicle.onVehicleStop -= OnVehicleStopped;
 #endif
                 }
 

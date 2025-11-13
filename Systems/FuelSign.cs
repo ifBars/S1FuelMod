@@ -70,10 +70,18 @@ namespace S1FuelMod.Systems
                 _signDisplays.Clear();
 
                 // Look for GameObject 0-7 (fuel type positions)
-                // GameObject (unnumbered) = position 0
-                // GameObject (0) = position 1
-                // GameObject (1) = position 2
-                // etc.
+                // Position 0: unnumbered GameObject
+                // Positions 1-7: GameObject (1) through GameObject (7)
+                
+                ModLogger.Debug($"FuelSign: Initializing sign '{gameObject.name}', searching for child GameObjects...");
+                ModLogger.Debug($"FuelSign: Sign has {transform.childCount} children");
+
+                // Log all child names for debugging
+                for (int j = 0; j < transform.childCount; j++)
+                {
+                    Transform child = transform.GetChild(j);
+                    ModLogger.Debug($"FuelSign: Child {j}: '{child.name}'");
+                }
                 
                 // First check for the unnumbered GameObject
                 Transform unnumberedObject = transform.Find("GameObject");
@@ -112,6 +120,7 @@ namespace S1FuelMod.Systems
                 else
                 {
                     ModLogger.Warning($"FuelSign: No fuel displays found for {gameObject.name}");
+                    ModLogger.Warning($"FuelSign: Expected to find children named 'GameObject' with numbers (1) through (7)");
                 }
 
                 _hasInitialized = true;

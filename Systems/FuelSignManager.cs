@@ -23,11 +23,14 @@ namespace S1FuelMod.Systems
         public static FuelSignManager? Instance => _instance;
 
         private readonly List<FuelSign> _activeFuelSigns = new List<FuelSign>();
+        
+        // Paths to fuel signs in the scene hierarchy
+        // Based on actual game hierarchy: Map/Hyland Point/Region_Downtown/Gas Station/gas station/Sign (X)
         private readonly string[] FUEL_SIGN_PATHS = new string[]
         {
-            "Map/Container/Gas Station/gas station/Sign",
-            "Map/Container/Slums Gas Station/Sign",
-            "Map/Container/Gas Station/gas station/Sign (1)"
+            "Map/Hyland Point/Region_Downtown/Gas Station/gas station/Sign",
+            "Map/Hyland Point/Region_Downtown/Gas Station/gas station/Sign (1)",
+            "Map/Hyland Point/Region_Westville/Slums Gas Station/gas station/Sign"
         };
 
         private bool _hasInitialized = false;
@@ -37,6 +40,9 @@ namespace S1FuelMod.Systems
         private bool _shouldStopChecking = false;
         private int _initializationAttempts = 0;
         private const int MAX_INITIALIZATION_ATTEMPTS = 6; // Try for 30 seconds (6 * 5s intervals)
+        private const float INITIAL_DELAY = 3f; // Wait 3 seconds before first initialization attempt
+        private float _startTime = 0f;
+        private bool _delayedInitStarted = false;
 
         // Fuel type mapping for sign positions
         // GameObject 0-3: Front side (Regular, Mid-Grade, Premium, Diesel)
@@ -95,13 +101,30 @@ namespace S1FuelMod.Systems
 
         private void Start()
         {
-            InitializeFuelSigns();
+            // Record start time to delay first initialization
+            _startTime = Time.time;
+            ModLogger.Debug($"FuelSignManager.Start() called, will attempt initialization after {INITIAL_DELAY}s delay");
         }
 
         private void Update()
         {
             try
             {
+                // Wait for initial delay before first initialization attempt
+                if (!_delayedInitStarted && Time.time - _startTime >= INITIAL_DELAY)
+                {
+                    _delayedInitStarted = true;
+                    _lastSignCheckTime = Time.time;
+                    ModLogger.Debug("Initial delay complete, starting fuel sign initialization");
+                    InitializeFuelSigns();
+                }
+
+                // Only proceed with update logic after delayed init has started
+                if (!_delayedInitStarted)
+                {
+                    return;
+                }
+
                 // Clean up destroyed fuel signs every frame (lightweight operation)
                 CleanupDestroyedSigns();
                 
@@ -139,10 +162,16 @@ namespace S1FuelMod.Systems
                     if (signObject != null)
                     {
                         signsFound++;
+                        ModLogger.Debug($"FuelSignManager: Found sign at path: {signPath}");
+                        
                         if (SetupFuelSign(signObject))
                         {
                             signsSetup++;
                         }
+                    }
+                    else
+                    {
+                        ModLogger.Debug($"FuelSignManager: Could not find sign at path: {signPath}");
                     }
                 }
 
