@@ -9,7 +9,7 @@
         /// Mod information
         /// </summary>
         public const string MOD_NAME = "S1FuelMod";
-        public const string MOD_VERSION = "1.2.0";
+        public const string MOD_VERSION = "1.3.0";
         public const string MOD_AUTHORS = "Bars & SirTidez";
         public const string MOD_DESCRIPTION = "Adds a comprehensive fuel system to LandVehicles in Schedule I";
 
@@ -48,6 +48,7 @@
             public const float KOENIGSEGG_CC850_FUEL_CAPACITY = 45f;
             public const bool SHOW_FUEL_GAUGE = true;
             public const bool ENABLE_DEBUG_LOGGING = false; // Enable for testing
+            public const float MAX_FUEL_PER_CAN_USE = 5f; // Maximum liters that can be added per gasoline can use
         }
 
         /// <summary>
@@ -61,6 +62,8 @@
             public const float MAX_FUEL_CAPACITY = 200f;
             public const float MIN_FUEL_PRICE_PER_LITER = 0.1f;
             public const float MAX_FUEL_PRICE_PER_LITER = 1000.0f;
+            public const float MIN_MAX_FUEL_PER_CAN_USE = 0.1f;
+            public const float MAX_MAX_FUEL_PER_CAN_USE = 50f;
         }
 
         /// <summary>
