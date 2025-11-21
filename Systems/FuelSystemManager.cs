@@ -125,6 +125,36 @@ namespace S1FuelMod.Systems
         }
 
         /// <summary>
+        /// Find a child GameObject named "FuelDoor" on the vehicle
+        /// </summary>
+        /// <param name="vehicle">The vehicle to search</param>
+        /// <returns>FuelDoor GameObject if found, null otherwise</returns>
+        private GameObject? FindFuelDoorChild(LandVehicle vehicle)
+        {
+            try
+            {
+                if (vehicle == null || vehicle.transform == null)
+                {
+                    return null;
+                }
+
+                // Search for direct child named "FuelDoor"
+                Transform fuelDoorTransform = vehicle.transform.Find("FuelDoor");
+                if (fuelDoorTransform != null)
+                {
+                    return fuelDoorTransform.gameObject;
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Debug($"Error finding FuelDoor child: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Add a fuel system to a vehicle
         /// </summary>
         /// <param name="vehicle">The vehicle to add fuel system to</param>
@@ -162,10 +192,46 @@ namespace S1FuelMod.Systems
                 _vehicleFuelSystems[vehicleGUID] = fuelSystem;
                 _network.RegisterFuelSystem(fuelSystem);
 
-                // Add refuel interactable component
-                vehicle.gameObject.AddComponent<VehicleRefuelInteractable>();
+                // Check for FuelDoor child GameObject
+                GameObject? fuelDoor = FindFuelDoorChild(vehicle);
+                
+                if (fuelDoor != null)
+                {
+                    // Vehicle has FuelDoor - add interactable to FuelDoor with BoxCollider
+                    // Add BoxCollider if it doesn't already exist
+                    Collider? existingCollider = fuelDoor.GetComponent<Collider>();
+                    BoxCollider boxCollider;
+                    
+                    if (existingCollider is BoxCollider existingBoxCollider)
+                    {
+                        boxCollider = existingBoxCollider;
+                    }
+                    else if (existingCollider == null)
+                    {
+                        boxCollider = fuelDoor.AddComponent<BoxCollider>();
+                    }
+                    else
+                    {
+                        // Has a collider but not BoxCollider - add BoxCollider anyway
+                        boxCollider = fuelDoor.AddComponent<BoxCollider>();
+                    }
+                    
+                    // Add VehicleRefuelInteractable to FuelDoor
+                    VehicleRefuelInteractable interactable = fuelDoor.AddComponent<VehicleRefuelInteractable>();
+                    
+                    // Set the displayLocationCollider
+                    interactable.SetDisplayLocationCollider(boxCollider);
+                    
+                    ModLogger.Debug($"FuelSystemManager: Added fuel system to {vehicle.VehicleName} ({vehicleGUID.Substring(0, 8)}...) with FuelDoor interactable");
+                }
+                else
+                {
+                    // No FuelDoor - use existing implementation
+                    vehicle.gameObject.AddComponent<VehicleRefuelInteractable>();
+                    
+                    ModLogger.Debug($"FuelSystemManager: Added fuel system to {vehicle.VehicleName} ({vehicleGUID.Substring(0, 8)}...)");
+                }
 
-                ModLogger.Debug($"FuelSystemManager: Added fuel system to {vehicle.VehicleName} ({vehicleGUID.Substring(0, 8)}...)");
                 return fuelSystem;
             }
             catch (Exception ex)
