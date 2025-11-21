@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using System.Reflection;
+using HarmonyLib;
 using S1FuelMod.Systems;
 using S1FuelMod.Utils;
 #if MONO
@@ -8,6 +9,7 @@ using ScheduleOne.Persistence.Datas;
 using ScheduleOne.Persistence.Loaders;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.Vehicles;
+using ScheduleOne.Vehicles.Sound;
 using ScheduleOne.NPCs.CharacterClasses;
 using ScheduleOne.Equipping;
 using ScheduleOne.ItemFramework;
@@ -19,6 +21,7 @@ using Il2CppScheduleOne.Persistence.Datas;
 using Il2CppScheduleOne.Persistence.Loaders;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Vehicles;
+using Il2CppScheduleOne.Vehicles.Sound;
 using Il2CppScheduleOne.Equipping;
 using Il2CppScheduleOne.ItemFramework;
 #endif
@@ -84,7 +87,7 @@ namespace S1FuelMod.Integrations
                     ModLogger.FuelDebug($"Vehicle {fuelSystem.VehicleGUID.Substring(0, 8)}... engine disabled - out of fuel");
 
                     // Zero out the throttle input
-                    __instance.currentThrottle = 0f;
+                    ReflectionUtils.TrySetFieldOrProperty(__instance, "currentThrottle", 0f);
 
                     // Apply engine braking/coasting behavior
                     ApplyCoastingBehavior(__instance);
@@ -738,7 +741,7 @@ namespace S1FuelMod.Integrations
                     // Randomly reduce throttle input to simulate engine stuttering
                     if (UnityEngine.Random.Range(0f, 1f) < 0.1f) // 10% chance per frame
                     {
-                        vehicle.currentThrottle *= 0.5f; // Reduce throttle by half
+                        ReflectionUtils.TrySetFieldOrProperty(vehicle, "currentThrottle", vehicle.currentThrottle * 0.5f);
                         // ModLogger.FuelDebug($"Vehicle {fuelSystem.VehicleGUID.Substring(0, 8)}... engine stuttering");
                     }
                 }
@@ -875,6 +878,132 @@ namespace S1FuelMod.Integrations
             catch (Exception ex)
             {
                 ModLogger.Error("Error in HotbarSlot.SetStoredItem postfix for gasoline can", ex);
+            }
+        }
+
+        /// <summary>
+        /// Patch VehicleSound.UpdateIdle to smoothly fade out engine idle sound when out of fuel
+        /// Uses the existing VehicleSound fade logic by setting engineRunning to false
+        /// </summary>
+        [HarmonyPatch(typeof(VehicleSound), "UpdateIdle")]
+        [HarmonyPrefix]
+        public static void VehicleSound_UpdateIdle_Prefix(VehicleSound __instance, ref bool engineRunning)
+        {
+            try
+            {
+                if (_modInstance?.EnableFuelSystem != true || __instance == null)
+                    return;
+
+                // Get the vehicle and check fuel level
+                var vehicle = __instance.Vehicle;
+                if (vehicle == null)
+                    return;
+
+                var fuelSystem = vehicle.GetComponent<VehicleFuelSystem>();
+                if (fuelSystem != null && fuelSystem.IsOutOfFuel)
+                {
+                    // Set engineRunning to false so VehicleSound's existing fade-out logic handles it smoothly
+                    engineRunning = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error in VehicleSound.UpdateIdle prefix", ex);
+            }
+        }
+
+        /// <summary>
+        /// Patch VehicleSound.UpdateEngineLoop to smoothly fade out engine loop sound when out of fuel
+        /// Uses the existing VehicleSound fade logic by setting engineRunning to false
+        /// </summary>
+        [HarmonyPatch(typeof(VehicleSound), "UpdateEngineLoop")]
+        [HarmonyPrefix]
+        public static void VehicleSound_UpdateEngineLoop_Prefix(VehicleSound __instance, ref bool engineRunning, ref float normalizedspeed)
+        {
+            try
+            {
+                if (_modInstance?.EnableFuelSystem != true || __instance == null)
+                    return;
+
+                // Get the vehicle and check fuel level
+                var vehicle = __instance.Vehicle;
+                if (vehicle == null)
+                    return;
+
+                var fuelSystem = vehicle.GetComponent<VehicleFuelSystem>();
+                if (fuelSystem != null && fuelSystem.IsOutOfFuel)
+                {
+                    // Set engineRunning to false and speed to 0 so VehicleSound's existing fade-out logic handles it smoothly
+                    engineRunning = false;
+                    normalizedspeed = 0f;
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error in VehicleSound.UpdateEngineLoop prefix", ex);
+            }
+        }
+
+        /// <summary>
+        /// Patch VehicleSound.EngineStart to prevent engine start sound when out of fuel
+        /// </summary>
+        [HarmonyPatch(typeof(VehicleSound), "EngineStart")]
+        [HarmonyPrefix]
+        public static bool VehicleSound_EngineStart_Prefix(VehicleSound __instance)
+        {
+            try
+            {
+                if (_modInstance?.EnableFuelSystem != true || __instance == null)
+                {
+                    return true; // Continue with original method
+                }
+
+                // Get the vehicle and check fuel level
+                var vehicle = __instance.Vehicle;
+                if (vehicle == null)
+                {
+                    return true; // Continue with original method
+                }
+
+                var fuelSystem = vehicle.GetComponent<VehicleFuelSystem>();
+                if (fuelSystem != null && fuelSystem.IsOutOfFuel)
+                {
+                    // Skip playing engine start sound when out of fuel
+                    // Still start the volume update coroutine so the fade-out logic works
+                    // but don't play the start sound
+                    if (__instance.EngineStartSource != null)
+                    {
+                        __instance.EngineStartSource.volumeMultiplier = 0f;
+                        // Don't call Play() - skip the start sound
+                    }
+                    
+                    // Still start the volume update coroutine (it will fade out immediately due to our other patches)
+                    // We need to call StartUpdateVolume manually since we're skipping the original method
+                    try
+                    {
+                        var method = ReflectionUtils.GetMethod(__instance.GetType(), "StartUpdateVolume", 
+                            BindingFlags.NonPublic | BindingFlags.Instance);
+                        if (method != null)
+                        {
+                            method.Invoke(__instance, null);
+                        }
+                    }
+                    catch (Exception invokeEx)
+                    {
+                        ModLogger.Error("Error invoking StartUpdateVolume", invokeEx);
+                    }
+                    
+                    ModLogger.FuelDebug($"VehicleSound: Skipped engine start sound - out of fuel");
+                    return false; // Skip original method
+                }
+
+                // Allow normal engine start if fuel is available
+                return true; // Continue with original method
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error in VehicleSound.EngineStart prefix", ex);
+                return true; // Continue with original method on error
             }
         }
     }
