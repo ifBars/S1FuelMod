@@ -9,7 +9,7 @@
         <!--<DefineConstants>$(DefineConstants);UnityExplorer</DefineConstants>-->
 
         <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>disable</Nullable>
+        <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
