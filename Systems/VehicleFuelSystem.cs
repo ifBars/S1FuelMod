@@ -171,7 +171,7 @@ namespace S1FuelMod.Systems
         {
             try
             {
-                if (!_landVehicle.LocalPlayerIsDriver)
+                if (_landVehicle && !_landVehicle.LocalPlayerIsDriver)
                     return;
 
                 // Update engine running state
@@ -267,7 +267,7 @@ namespace S1FuelMod.Systems
         /// </summary>
         private void UpdateEngineState()
         {
-            if (_landVehicle == null) return;
+            if (!_landVehicle) return;
 
             // Engine should be running if vehicle is occupied (player is in it)
             bool shouldBeRunning = _landVehicle.IsOccupied;
@@ -293,7 +293,7 @@ namespace S1FuelMod.Systems
         /// </summary>
         private void UpdateFuelConsumption()
         {
-            if (_landVehicle == null || currentFuelLevel <= 0f || !_isEngineRunning)
+            if (!_landVehicle || currentFuelLevel <= 0f || !_isEngineRunning)
                 return;
 
             float deltaTime = Time.deltaTime;
@@ -334,7 +334,7 @@ namespace S1FuelMod.Systems
                 return Mathf.Lerp(idleConsumptionRate, baseFuelConsumptionRate, absoluteThrottle);
             }
 
-            if (_landVehicle != null && _landVehicle.IsOccupied)
+            if (_landVehicle && _landVehicle.IsOccupied)
             {
                 return idleConsumptionRate;
             }
@@ -362,14 +362,14 @@ namespace S1FuelMod.Systems
 
         private float GetCurrentFuelEfficiencyModifier()
         {
-            if (_landVehicle == null)
+            if (!_landVehicle)
             {
                 return 1.0f;
             }
 
             float modifier = 1.0f;
 
-            if (FuelTypeManager.Instance != null)
+            if (FuelTypeManager.Instance)
             {
                 modifier = FuelTypeManager.Instance.GetFuelEfficiency(
                     _currentFuelType,
@@ -388,12 +388,11 @@ namespace S1FuelMod.Systems
         private void CheckFuelWarnings()
         {
             float fuelPercent = FuelPercentage;
-
-            // Critical fuel warning
+            
             if (fuelPercent <= criticalFuelThreshold && !_criticalFuelWarningShown)
             {
                 _criticalFuelWarningShown = true;
-                _lowFuelWarningShown = true; // Also set low fuel warning
+                _lowFuelWarningShown = true;
                 OnCriticalFuelWarning.Invoke(true);
                 ModLogger.LogFuelWarning(_vehicleGUID, currentFuelLevel, "CRITICAL");
             }
@@ -402,8 +401,7 @@ namespace S1FuelMod.Systems
                 _criticalFuelWarningShown = false;
                 OnCriticalFuelWarning.Invoke(false);
             }
-
-            // Low fuel warning
+            
             if (fuelPercent <= lowFuelThreshold && !_lowFuelWarningShown && !_criticalFuelWarningShown)
             {
                 _lowFuelWarningShown = true;
@@ -422,9 +420,9 @@ namespace S1FuelMod.Systems
         /// </summary>
         private void HandleOutOfFuel()
         {
-            if (_landVehicle == null) return;
+            if (!_landVehicle) return;
 
-            ModLogger.LogFuelWarning(_vehicleGUID, 0f, "OUT OF FUEL");
+            // ModLogger.LogFuelWarning(_vehicleGUID, 0f, "OUT OF FUEL");
             OnFuelEmpty.Invoke(true);
 
             // Engine effects will be handled by the Harmony patch
@@ -586,8 +584,6 @@ namespace S1FuelMod.Systems
         /// Get fuel data for saving (IL2CPP compatible version)
         /// </summary>
         /// <param name="currentLevel">Output: current fuel level</param>
-        /// <param name="maxCapacity">Output: maximum fuel capacity</param>
-        /// <param name="consumptionRate">Output: fuel consumption rate</param>
         public void GetFuelDataValues(out float currentLevel)
         {
             currentLevel = currentFuelLevel;
@@ -597,8 +593,6 @@ namespace S1FuelMod.Systems
         /// Load fuel data from save (IL2CPP compatible version)
         /// </summary>
         /// <param name="currentLevel">Current fuel level</param>
-        /// <param name="maxCapacity">Maximum fuel capacity</param>
-        /// <param name="consumptionRate">Fuel consumption rate</param>
         public void LoadFuelDataValues(float currentLevel)
         {
             currentFuelLevel = currentLevel;
@@ -612,7 +606,8 @@ namespace S1FuelMod.Systems
 
         private void SetVehicleType()
         {
-            switch (_landVehicle.vehicleName)
+            string vehicleName = ReflectionUtils.TryGetFieldOrProperty(_landVehicle, "vehicleName")?.ToString();
+            switch (vehicleName)
             {
                 case "Shitbox":
                     _vehicleType = VehicleType.Shitbox;
