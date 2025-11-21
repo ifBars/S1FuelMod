@@ -104,6 +104,12 @@ namespace S1FuelMod.Systems
                 return;
             }
 
+            // Don't reset if already refueling the same vehicle
+            if (isRefueling && targetVehicle == vehicle && targetFuelSystem == fuelSystem)
+            {
+                return;
+            }
+
             var recommendedFuelType = fuelSystem.CurrentFuelType;
             FuelTypeForCan = recommendedFuelType;
 
@@ -127,7 +133,6 @@ namespace S1FuelMod.Systems
 
             string fuelTypeName = GetFuelTypeDisplayName(FuelTypeForCan);
             string compatibilityTag = BuildFuelCompatibilityTag(fuelSystem, FuelTypeForCan);
-            ShowMessage($"Refueling {vehicle.VehicleName} with {fuelTypeName}{compatibilityTag}...", MessageType.Info);
             
             ModLogger.Debug($"Started refueling {vehicle.VehicleName} with gasoline can");
         }
@@ -195,13 +200,32 @@ namespace S1FuelMod.Systems
                 return;
             }
 
-            float addLimitedByCan = Mathf.Min(fuelToAdd, canLitersAvailable);
+            // Check against max fuel per can use limit
+            float maxFuelPerCanUse = Core.Instance?.MaxFuelPerCanUse ?? Constants.Defaults.MAX_FUEL_PER_CAN_USE;
+            float remainingLimit = maxFuelPerCanUse - totalFuelAdded;
+            if (remainingLimit <= 0.001f)
+            {
+                // Limit reached, stop refueling and consume the item
+                StopRefuel();
+                return;
+            }
+
+            // Limit fuel addition to remaining limit
+            float addLimitedByCan = Mathf.Min(fuelToAdd, canLitersAvailable, remainingLimit);
             float actuallyAdded = targetFuelSystem.AddFuel(addLimitedByCan);
             if (actuallyAdded > 0f)
             {
                 pendingCanConsumption += actuallyAdded;
                 totalFuelAdded += actuallyAdded;
                 ConsumeUnitsIfNeeded(slot);
+
+                // Check if limit reached after adding fuel
+                if (totalFuelAdded >= maxFuelPerCanUse - 0.001f)
+                {
+                    // Limit reached, stop refueling and consume the item
+                    StopRefuel();
+                    return;
+                }
             }
         }
 
@@ -237,30 +261,70 @@ namespace S1FuelMod.Systems
         {
             if (!isRefueling) return;
 
+            // Store values before resetting to ensure message shows correct amount
+            float fuelAddedForMessage = totalFuelAdded;
+            LandVehicle vehicleForMessage = targetVehicle;
+            FuelTypeId fuelTypeForMessage = FuelTypeForCan;
+
             // Hide fuel gauge when ending refueling
             if (targetVehicle != null)
             {
                 HideFuelGaugeForVehicle(targetVehicle.GUID.ToString());
             }
 
-            // Show completion message
-            if (totalFuelAdded > 0.01f)
+            // Get the slot to consume from
+            var slot = PlayerSingleton<PlayerInventory>.Instance.equippedSlot;
+
+            // Show completion message using stored value
+            if (fuelAddedForMessage > 0.01f)
             {
-                string fuelTypeName = GetFuelTypeDisplayName(FuelTypeForCan);
-                ShowMessage($"Refueled {totalFuelAdded:F1}L of {fuelTypeName} with gasoline can", MessageType.Success);
-                ConsumeOnFinish(PlayerSingleton<PlayerInventory>.Instance.equippedSlot);
-                ModLogger.Debug($"Completed gasoline can refueling: {totalFuelAdded:F1}L of {fuelTypeName}");
+                string fuelTypeName = GetFuelTypeDisplayName(fuelTypeForMessage);
+                
+                // Check if limit was reached
+                float maxFuelPerCanUse = Core.Instance?.MaxFuelPerCanUse ?? Constants.Defaults.MAX_FUEL_PER_CAN_USE;
+                bool limitReached = fuelAddedForMessage >= maxFuelPerCanUse - 0.001f;
+                
+                if (limitReached)
+                {
+                    ShowMessage($"Refueled {fuelAddedForMessage:F1}L of {fuelTypeName} (limit reached)", MessageType.Success);
+                    // Consume the item when limit is reached
+                    ConsumeItemOnLimit(slot);
+                }
+                else
+                {
+                    ShowMessage($"Refueled {fuelAddedForMessage:F1}L of {fuelTypeName} with gasoline can", MessageType.Success);
+                    ConsumeOnFinish(slot);
+                }
+                
+                ModLogger.Debug($"Completed gasoline can refueling: {fuelAddedForMessage:F1}L of {fuelTypeName}");
             }
-            else if (targetVehicle != null)
+            else if (vehicleForMessage != null)
             {
                 ShowMessage("No fuel added", MessageType.Warning);
             }
 
+            // Reset state after showing message
             isRefueling = false;
             targetVehicle = null;
             targetFuelSystem = null;
             pendingCanConsumption = 0f;
             totalFuelAdded = 0f;
+        }
+
+        /// <summary>
+        /// Consume the item when the fuel limit per can use is reached
+        /// </summary>
+        private void ConsumeItemOnLimit(HotbarSlot slot)
+        {
+            if (slot == null || slot.ItemInstance == null)
+                return;
+
+            // Consume one unit (the can) when limit is reached
+            slot.ChangeQuantity(-1);
+            if (slot.Quantity <= 0)
+            {
+                slot.ClearStoredInstance();
+            }
         }
 
         /// <summary>
