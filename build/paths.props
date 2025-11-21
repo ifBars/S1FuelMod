@@ -1,9 +1,9 @@
 ﻿<Project>
     <PropertyGroup>
         <!-- Paths and conditions -->
-        <S1MonoDir>C:\Users\Tyler\Documents\Development\Schedule 1 Developer Environment\branches\alternate-branch\manifest_941591400057088607</S1MonoDir>
-        <S1CPPDir>C:\Users\Tyler\Documents\Development\Schedule 1 Developer Environment\branches\main-branch\manifest_5895781832173514260</S1CPPDir>
-        <CommonDir>C:\Users\Tyler\Documents\Development\Schedule 1 Developer Environment</CommonDir>
+        <S1MonoDir>D:\SteamLibrary\steamapps\common\Schedule I_alternate</S1MonoDir>
+        <S1CPPDir>D:\SteamLibrary\steamapps\common\Schedule I_public</S1CPPDir>
+        <CommonDir>D:\SteamLibrary\steamapps\common\</CommonDir>
         <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
     </PropertyGroup>
 </Project>
