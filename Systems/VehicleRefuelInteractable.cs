@@ -1,6 +1,7 @@
 using MelonLoader;
 using S1FuelMod.Systems.FuelTypes;
 using S1FuelMod.Utils;
+using UnityEngine;
 #if MONO
 using ScheduleOne.Equipping;
 using ScheduleOne.Interaction;
@@ -44,12 +45,40 @@ namespace S1FuelMod.Systems
         }
 #endif
 
+        /// <summary>
+        /// Set the display location collider (used when component is on FuelDoor child GameObject)
+        /// </summary>
+        /// <param name="collider">The collider to use for display location</param>
+        public void SetDisplayLocationCollider(Collider collider)
+        {
+            try
+            {
+                displayLocationCollider = collider;
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error setting display location collider", ex);
+            }
+        }
+
         private void Awake()
         {
             try
             {
+                // Try to get components directly first
                 _vehicle = GetComponent<LandVehicle>();
                 _fuelSystem = GetComponent<VehicleFuelSystem>();
+
+                // If not found and component is on a child GameObject, search parent hierarchy
+                if (_vehicle == null)
+                {
+                    _vehicle = GetComponentInParent<LandVehicle>();
+                }
+
+                if (_fuelSystem == null)
+                {
+                    _fuelSystem = GetComponentInParent<VehicleFuelSystem>();
+                }
 
                 if (_vehicle == null || _fuelSystem == null)
                 {
