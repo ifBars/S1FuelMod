@@ -27,7 +27,7 @@ namespace S1FuelMod
     /// </summary>
     public class Core : MelonMod
     {
-        public static Core? Instance { get; private set; }
+        public static Core Instance { get; private set; }
 
         // MelonPreferences
         private MelonPreferences_Category? _preferencesCategory;
@@ -61,6 +61,7 @@ namespace S1FuelMod
         private MelonPreferences_Entry<bool>? _enableCurfewFuelTax;
         private MelonPreferences_Entry<bool>? _swapGaugeDirection;
         private MelonPreferences_Entry<bool>? _useNewGaugeUI;
+        private MelonPreferences_Entry<float>? _maxFuelPerCanUse;
 
         // Mod Systems
         private FuelTypeManager? _fuelTypeManager;
@@ -99,6 +100,7 @@ namespace S1FuelMod
         public bool EnableCurfewFuelTax => _enableCurfewFuelTax?.Value ?? false;
         public bool SwapGaugeDirection => _swapGaugeDirection?.Value ?? false;
         public bool UseNewGaugeUI => _useNewGaugeUI?.Value ?? true;
+        public float MaxFuelPerCanUse => _maxFuelPerCanUse?.Value ?? Constants.Defaults.MAX_FUEL_PER_CAN_USE;
 
         /// <summary>
         /// Called when the mod is being loaded
@@ -403,6 +405,14 @@ namespace S1FuelMod
                     true,
                     "Use New Gauge UI",
                     "If enabled, uses the new circular fuel gauge instead of the old slider-based gauge. Change requires vehicle re-entry to take effect."
+                );
+
+                _maxFuelPerCanUse = _preferencesCategory.CreateEntry<float>(
+                    "MaxFuelPerCanUse",
+                    Constants.Defaults.MAX_FUEL_PER_CAN_USE,
+                    "Max Fuel Per Can Use (L)",
+                    "Maximum amount of fuel (in liters) that can be added per gasoline can use. The can will be consumed after this amount is added.",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_MAX_FUEL_PER_CAN_USE, Constants.Constraints.MAX_MAX_FUEL_PER_CAN_USE)
                 );
 
                 ModLogger.Debug("MelonPreferences initialized successfully");
