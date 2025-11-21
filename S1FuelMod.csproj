@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <Import Project="build/paths.props"/>
+    <!-- Local path overrides (git-ignored) - only imported if file exists -->
+    <Import Project="build/paths.local.props" Condition="Exists('build/paths.local.props')" />
 
     <PropertyGroup>
         <!-- Testing props -->
@@ -7,7 +9,7 @@
         <!--<DefineConstants>$(DefineConstants);UnityExplorer</DefineConstants>-->
 
         <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>disable</Nullable>
+        <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -41,13 +43,6 @@
     
 
     <Import Project="build/conditions.props"/>
-
-    <ItemGroup Label="Publicizer" Condition="'$(IsMono)' == 'true'">
-        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.5.0-beta.1">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-    </ItemGroup>
 
     <!-- MelonLoader References -->
     <Import Project="build\references\MelonMono.targets"/>

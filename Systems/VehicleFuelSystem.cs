@@ -8,6 +8,7 @@ using ScheduleOne.DevUtilities;
 using Il2CppScheduleOne.Vehicles;
 using Il2CppInterop.Runtime.Attributes;
 #endif
+using S1FuelMod.Systems.FuelTypes;
 using S1FuelMod.Utils;
 
 
@@ -43,6 +44,8 @@ namespace S1FuelMod.Systems
         private bool _criticalFuelWarningShown = false;
         private float _lastConsumptionTime = 0f;
         private VehicleType _vehicleType = VehicleType.Other;
+        private FuelTypeId _currentFuelType = FuelTypeId.Regular;
+        private float _fuelQuality = 1.0f;
 
         // Events for UI updates
         public UnityEvent<float> OnFuelLevelChanged = new UnityEvent<float>();
@@ -67,6 +70,25 @@ namespace S1FuelMod.Systems
         /// Get the network ID for this vehicle (consistent across all clients)
         /// </summary>
         public string NetworkID => _landVehicle?.NetworkObject?.ObjectId.ToString() ?? _vehicleGUID;
+
+        public FuelTypeId CurrentFuelType => _currentFuelType;
+        public float FuelQuality => _fuelQuality;
+        public VehicleType VehicleType => _vehicleType;
+
+        public FuelTypeId GetRecommendedFuelType()
+        {
+            return FuelTypeManager.Instance?.GetRecommendedFuelType(_vehicleType) ?? FuelTypeId.Regular;
+        }
+
+        public bool IsFuelCompatible(FuelTypeId fuelTypeId)
+        {
+            return FuelTypeManager.Instance?.IsFuelCompatible(fuelTypeId, _vehicleType) ?? true;
+        }
+
+        public string GetCurrentFuelDisplayName()
+        {
+            return FuelTypeManager.Instance?.GetFuelDisplayName(_currentFuelType) ?? "Regular";
+        }
 
 #if !MONO
         /// <summary>
@@ -95,6 +117,7 @@ namespace S1FuelMod.Systems
                 if (Core.Instance != null)
                 {
                     SetVehicleType();
+                    InitializeFuelTypeState();
                     baseFuelConsumptionRate = SetBaseFuelConsumption();
                     globalMaxFuelCapacity = Core.Instance.DefaultFuelCapacity;
                     maxFuelCapacity = SetMaxFuelCapacity();
@@ -119,15 +142,16 @@ namespace S1FuelMod.Systems
                 if (_landVehicle != null)
                 {
 #if !MONO
+                    _landVehicle.onVehicleStart += new Action(OnVehicleStarted);
                     if (_landVehicle.onVehicleStart != null)
-                        _landVehicle.onVehicleStart.AddListener(new Action(OnVehicleStarted));
+                        _landVehicle.onVehicleStart += new Action(OnVehicleStarted);
                     if (_landVehicle.onVehicleStop != null)
-                        _landVehicle.onVehicleStop.AddListener(new Action(OnVehicleStopped));
+                        _landVehicle.onVehicleStop += new Action(OnVehicleStopped);
 #else
                     if (_landVehicle.onVehicleStart != null)
-                        _landVehicle.onVehicleStart.AddListener(OnVehicleStarted);
+                        _landVehicle.onVehicleStart += OnVehicleStarted;
                     if (_landVehicle.onVehicleStop != null)
-                        _landVehicle.onVehicleStop.AddListener(OnVehicleStopped);
+                        _landVehicle.onVehicleStop += OnVehicleStopped;
 #endif
                 }
 
@@ -147,7 +171,7 @@ namespace S1FuelMod.Systems
         {
             try
             {
-                if (!_landVehicle.localPlayerIsDriver)
+                if (_landVehicle && !_landVehicle.LocalPlayerIsDriver)
                     return;
 
                 // Update engine running state
@@ -243,10 +267,10 @@ namespace S1FuelMod.Systems
         /// </summary>
         private void UpdateEngineState()
         {
-            if (_landVehicle == null) return;
+            if (!_landVehicle) return;
 
             // Engine should be running if vehicle is occupied (player is in it)
-            bool shouldBeRunning = _landVehicle.isOccupied;
+            bool shouldBeRunning = _landVehicle.IsOccupied;
 
             if (shouldBeRunning != _isEngineRunning)
             {
@@ -260,7 +284,7 @@ namespace S1FuelMod.Systems
                 }
                 
                 ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... engine state changed: {_isEngineRunning} " +
-                                   $"(occupied: {_landVehicle.isOccupied}, throttle: {_landVehicle.currentThrottle:F2}, speed: {_landVehicle.speed_Kmh:F1})");
+                                   $"(occupied: {_landVehicle.IsOccupied}, throttle: {_landVehicle.currentThrottle:F2}, speed: {_landVehicle.Speed_Kmh:F1})");
             }
         }
 
@@ -269,42 +293,93 @@ namespace S1FuelMod.Systems
         /// </summary>
         private void UpdateFuelConsumption()
         {
-            if (_landVehicle == null || currentFuelLevel <= 0f || !_isEngineRunning) return;
+            if (!_landVehicle || currentFuelLevel <= 0f || !_isEngineRunning)
+                return;
 
-            float deltaTime = Time.time - _lastConsumptionTime;
+            float deltaTime = Time.deltaTime;
+            float throttleInput = _landVehicle.currentThrottle;
+
+            float baseConsumption = CalculateBaseConsumption(throttleInput);
+            if (baseConsumption <= 0f)
+            {
+                _lastConsumptionTime = Time.time;
+                return;
+            }
+
+            float speedMultiplier = CalculateAdvancedSpeedMultiplier(_landVehicle.Speed_Kmh);
+            float fuelTypeModifier = GetCurrentFuelEfficiencyModifier();
+
+            float finalConsumption = baseConsumption * speedMultiplier * fuelTypeModifier;
+            if (finalConsumption <= 0f)
+            {
+                _lastConsumptionTime = Time.time;
+                return;
+            }
+
+            float fuelConsumed = (finalConsumption / 3600f) * deltaTime;
+            if (fuelConsumed > 0.0005f && _landVehicle.IsOccupied)
+            {
+                ConsumeFuel(fuelConsumed);
+            }
+
             _lastConsumptionTime = Time.time;
+        }
 
-            // Calculate consumption rate based on throttle and speed
-            float throttleInput = Math.Abs(_landVehicle.currentThrottle);
-            float consumptionRate = 0f;
+        private float CalculateBaseConsumption(float throttleInput)
+        {
+            float absoluteThrottle = Mathf.Clamp01(Mathf.Abs(throttleInput));
 
-            if (throttleInput > 0.01f)
+            if (absoluteThrottle > 0.01f)
             {
-                // Active driving - scale consumption with throttle input
-                consumptionRate = Mathf.Lerp(idleConsumptionRate, baseFuelConsumptionRate, throttleInput);
-                
-                // Additional consumption for high speeds
-                if (_landVehicle.speed_Kmh > 50f)
-                {
-                    float speedMultiplier = 1f + ((_landVehicle.speed_Kmh - 50f) / 100f);
-                    consumptionRate *= speedMultiplier;
-                }
-            }
-            else if (_landVehicle.isOccupied)
-            {
-                // Idling when occupied
-                consumptionRate = idleConsumptionRate;
+                return Mathf.Lerp(idleConsumptionRate, baseFuelConsumptionRate, absoluteThrottle);
             }
 
-            // Apply consumption (convert from per-hour to per-second)
-            if (consumptionRate > 0f)
+            if (_landVehicle && _landVehicle.IsOccupied)
             {
-                float fuelConsumed = (consumptionRate / 3600f) * deltaTime;
-                if (fuelConsumed > 0.001f && _landVehicle.isOccupied) // Only consume if significant amount and player is in vehicle
-                {
-                    ConsumeFuel(fuelConsumed);
-                }
+                return idleConsumptionRate;
             }
+
+            return 0f;
+        }
+
+        private float CalculateAdvancedSpeedMultiplier(float speedKmh)
+        {
+            if (speedKmh <= 20f)
+                return 0.8f;
+
+            if (speedKmh <= 40f)
+                return 1.0f;
+
+            if (speedKmh <= 60f)
+                return 1.0f + ((speedKmh - 40f) * 0.025f);
+
+            if (speedKmh <= 80f)
+                return 1.5f + ((speedKmh - 60f) * 0.05f);
+
+            float excessSpeed = speedKmh - 80f;
+            return 2.5f + (excessSpeed * excessSpeed) * 0.002f;
+        }
+
+        private float GetCurrentFuelEfficiencyModifier()
+        {
+            if (!_landVehicle)
+            {
+                return 1.0f;
+            }
+
+            float modifier = 1.0f;
+
+            if (FuelTypeManager.Instance)
+            {
+                modifier = FuelTypeManager.Instance.GetFuelEfficiency(
+                    _currentFuelType,
+                    _vehicleType,
+                    _landVehicle.Speed_Kmh,
+                    _landVehicle.currentThrottle);
+            }
+
+            float qualityPenalty = Mathf.Lerp(1.0f, 1.25f, 1.0f - Mathf.Clamp01(_fuelQuality));
+            return modifier * qualityPenalty;
         }
 
         /// <summary>
@@ -313,12 +388,11 @@ namespace S1FuelMod.Systems
         private void CheckFuelWarnings()
         {
             float fuelPercent = FuelPercentage;
-
-            // Critical fuel warning
+            
             if (fuelPercent <= criticalFuelThreshold && !_criticalFuelWarningShown)
             {
                 _criticalFuelWarningShown = true;
-                _lowFuelWarningShown = true; // Also set low fuel warning
+                _lowFuelWarningShown = true;
                 OnCriticalFuelWarning.Invoke(true);
                 ModLogger.LogFuelWarning(_vehicleGUID, currentFuelLevel, "CRITICAL");
             }
@@ -327,8 +401,7 @@ namespace S1FuelMod.Systems
                 _criticalFuelWarningShown = false;
                 OnCriticalFuelWarning.Invoke(false);
             }
-
-            // Low fuel warning
+            
             if (fuelPercent <= lowFuelThreshold && !_lowFuelWarningShown && !_criticalFuelWarningShown)
             {
                 _lowFuelWarningShown = true;
@@ -347,9 +420,9 @@ namespace S1FuelMod.Systems
         /// </summary>
         private void HandleOutOfFuel()
         {
-            if (_landVehicle == null) return;
+            if (!_landVehicle) return;
 
-            ModLogger.LogFuelWarning(_vehicleGUID, 0f, "OUT OF FUEL");
+            // ModLogger.LogFuelWarning(_vehicleGUID, 0f, "OUT OF FUEL");
             OnFuelEmpty.Invoke(true);
 
             // Engine effects will be handled by the Harmony patch
@@ -501,7 +574,8 @@ namespace S1FuelMod.Systems
             maxFuelCapacity = data.MaxFuelCapacity;
             currentFuelLevel = data.CurrentFuelLevel;
             baseFuelConsumptionRate = data.FuelConsumptionRate;
-            
+            InitializeFuelTypeState();
+
             TriggerFuelLevelChanged();
             ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... fuel data loaded");
         }
@@ -510,8 +584,6 @@ namespace S1FuelMod.Systems
         /// Get fuel data for saving (IL2CPP compatible version)
         /// </summary>
         /// <param name="currentLevel">Output: current fuel level</param>
-        /// <param name="maxCapacity">Output: maximum fuel capacity</param>
-        /// <param name="consumptionRate">Output: fuel consumption rate</param>
         public void GetFuelDataValues(out float currentLevel)
         {
             currentLevel = currentFuelLevel;
@@ -521,13 +593,12 @@ namespace S1FuelMod.Systems
         /// Load fuel data from save (IL2CPP compatible version)
         /// </summary>
         /// <param name="currentLevel">Current fuel level</param>
-        /// <param name="maxCapacity">Maximum fuel capacity</param>
-        /// <param name="consumptionRate">Fuel consumption rate</param>
         public void LoadFuelDataValues(float currentLevel)
         {
             currentFuelLevel = currentLevel;
             SetBaseFuelConsumption();
             maxFuelCapacity = SetMaxFuelCapacity();
+            InitializeFuelTypeState();
 
             TriggerFuelLevelChanged();
             ModLogger.FuelDebug($"Vehicle {_vehicleGUID.Substring(0, 8)}... fuel data loaded");
@@ -535,7 +606,8 @@ namespace S1FuelMod.Systems
 
         private void SetVehicleType()
         {
-            switch (_landVehicle.vehicleName)
+            string vehicleName = ReflectionUtils.TryGetFieldOrProperty(_landVehicle, "vehicleName")?.ToString();
+            switch (vehicleName)
             {
                 case "Shitbox":
                     _vehicleType = VehicleType.Shitbox;
@@ -597,6 +669,89 @@ namespace S1FuelMod.Systems
             }
         }
 
+        private void InitializeFuelTypeState()
+        {
+            _fuelQuality = 1.0f;
+
+            if (FuelTypeManager.Instance != null)
+            {
+                _currentFuelType = FuelTypeManager.Instance.GetRecommendedFuelType(_vehicleType);
+            }
+            else
+            {
+                _currentFuelType = FuelTypeId.Regular;
+            }
+        }
+
+        public bool ChangeFuelType(FuelTypeId newFuelType, float refuelAmount)
+        {
+            try
+            {
+                if (!IsFuelCompatible(newFuelType))
+                {
+                    ModLogger.Warning($"Fuel type {newFuelType} is not compatible with {_vehicleType}");
+                    return false;
+                }
+
+                if (_currentFuelType != newFuelType && CurrentFuelLevel > 0.1f)
+                {
+                    CalculateFuelMixingEffect(newFuelType, refuelAmount);
+                }
+                else
+                {
+                    _currentFuelType = newFuelType;
+                    _fuelQuality = 1.0f;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error changing fuel type", ex);
+                return false;
+            }
+        }
+
+        private void CalculateFuelMixingEffect(FuelTypeId newFuelType, float refuelAmount)
+        {
+            try
+            {
+                float totalFuel = Mathf.Max(0.01f, CurrentFuelLevel + Mathf.Max(0f, refuelAmount));
+                float oldRatio = Mathf.Clamp01(CurrentFuelLevel / totalFuel);
+                float newRatio = Mathf.Clamp01(Mathf.Max(0f, refuelAmount) / totalFuel);
+
+                if (GetFuelCompatibilityScore(_currentFuelType, newFuelType) < 0.8f)
+                {
+                    _fuelQuality = Mathf.Max(0.7f, _fuelQuality * 0.9f);
+                }
+                else
+                {
+                    // Blend quality towards the better of the two fuels when compatible
+                    _fuelQuality = Mathf.Clamp01(Mathf.Lerp(_fuelQuality, 1.0f, newRatio));
+                }
+
+                if (newRatio > 0.6f || oldRatio < 0.2f)
+                {
+                    _currentFuelType = newFuelType;
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error calculating fuel mixing effect", ex);
+            }
+        }
+
+        private float GetFuelCompatibilityScore(FuelTypeId fuel1, FuelTypeId fuel2)
+        {
+            if (fuel1 == fuel2)
+                return 1.0f;
+
+            if (fuel1 == FuelTypeId.Regular || fuel2 == FuelTypeId.Regular)
+                return 0.8f;
+
+            return 0.6f;
+        }
+
         private void OnDestroy()
         {
             try
@@ -606,14 +761,14 @@ namespace S1FuelMod.Systems
                 {
 #if !MONO
                     if (_landVehicle.onVehicleStart != null)
-                        _landVehicle.onVehicleStart.RemoveListener(new System.Action(OnVehicleStarted));
+                        _landVehicle.onVehicleStart -= new Action(OnVehicleStarted);
                     if (_landVehicle.onVehicleStop != null)
-                        _landVehicle.onVehicleStop.RemoveListener(new System.Action(OnVehicleStopped));
+                        _landVehicle.onVehicleStop -= new Action(OnVehicleStopped);
 #else
                     if (_landVehicle.onVehicleStart != null)
-                        _landVehicle.onVehicleStart.RemoveListener(OnVehicleStarted);
+                        _landVehicle.onVehicleStart -= OnVehicleStarted;
                     if (_landVehicle.onVehicleStop != null)
-                        _landVehicle.onVehicleStop.RemoveListener(OnVehicleStopped);
+                        _landVehicle.onVehicleStop -= OnVehicleStopped;
 #endif
                 }
 

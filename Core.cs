@@ -12,7 +12,9 @@ using MelonLoader.Preferences;
 using S1FuelMod.Utils;
 using S1FuelMod.Integrations;
 using S1FuelMod.Systems;
+using S1FuelMod.Systems.FuelTypes;
 using S1FuelMod.UI;
+using UnityEngine;
 
 [assembly: MelonInfo(typeof(S1FuelMod.Core), Constants.MOD_NAME, Constants.MOD_VERSION, Constants.MOD_AUTHORS)]
 [assembly: MelonGame(Constants.Game.GAME_STUDIO, Constants.Game.GAME_NAME)]
@@ -25,7 +27,7 @@ namespace S1FuelMod
     /// </summary>
     public class Core : MelonMod
     {
-        public static Core? Instance { get; private set; }
+        public static Core Instance { get; private set; }
 
         // MelonPreferences
         private MelonPreferences_Category? _preferencesCategory;
@@ -59,11 +61,14 @@ namespace S1FuelMod
         private MelonPreferences_Entry<bool>? _enableCurfewFuelTax;
         private MelonPreferences_Entry<bool>? _swapGaugeDirection;
         private MelonPreferences_Entry<bool>? _useNewGaugeUI;
+        private MelonPreferences_Entry<float>? _maxFuelPerCanUse;
 
         // Mod Systems
+        private FuelTypeManager? _fuelTypeManager;
         private FuelSystemManager? _fuelSystemManager;
         private FuelUIManager? _fuelUIManager;
         private FuelStationManager? _fuelStationManager;
+        private FuelSignManager? _fuelSignManager;
 
         // Public properties for accessing preferences
         public bool EnableFuelSystem => _enableFuelSystem?.Value ?? true;
@@ -95,6 +100,7 @@ namespace S1FuelMod
         public bool EnableCurfewFuelTax => _enableCurfewFuelTax?.Value ?? false;
         public bool SwapGaugeDirection => _swapGaugeDirection?.Value ?? false;
         public bool UseNewGaugeUI => _useNewGaugeUI?.Value ?? true;
+        public float MaxFuelPerCanUse => _maxFuelPerCanUse?.Value ?? Constants.Defaults.MAX_FUEL_PER_CAN_USE;
 
         /// <summary>
         /// Called when the mod is being loaded
@@ -401,6 +407,14 @@ namespace S1FuelMod
                     "If enabled, uses the new circular fuel gauge instead of the old slider-based gauge. Change requires vehicle re-entry to take effect."
                 );
 
+                _maxFuelPerCanUse = _preferencesCategory.CreateEntry<float>(
+                    "MaxFuelPerCanUse",
+                    Constants.Defaults.MAX_FUEL_PER_CAN_USE,
+                    "Max Fuel Per Can Use (L)",
+                    "Maximum amount of fuel (in liters) that can be added per gasoline can use. The can will be consumed after this amount is added.",
+                    validator: new ValueRange<float>(Constants.Constraints.MIN_MAX_FUEL_PER_CAN_USE, Constants.Constraints.MAX_MAX_FUEL_PER_CAN_USE)
+                );
+
                 ModLogger.Debug("MelonPreferences initialized successfully");
             }
             catch (Exception ex)
@@ -422,6 +436,18 @@ namespace S1FuelMod
                     return;
                 }
 
+                // Initialize fuel type manager before other systems
+                if (FuelTypeManager.Instance != null)
+                {
+                    _fuelTypeManager = FuelTypeManager.Instance;
+                }
+                else
+                {
+                    var fuelTypeManagerObject = new GameObject("S1FuelTypeManager");
+                    _fuelTypeManager = fuelTypeManagerObject.AddComponent<FuelTypeManager>();
+                }
+                ModLogger.Debug("Fuel type manager initialized");
+
                 // Initialize fuel system manager
                 _fuelSystemManager = new FuelSystemManager();
                 ModLogger.Debug("Fuel system manager initialized");
@@ -437,6 +463,18 @@ namespace S1FuelMod
                 // Initialize fuel station manager
                 _fuelStationManager = new FuelStationManager();
                 ModLogger.Debug("Fuel station manager initialized");
+
+                // Initialize fuel sign manager
+                if (FuelSignManager.Instance != null)
+                {
+                    _fuelSignManager = FuelSignManager.Instance;
+                }
+                else
+                {
+                    var fuelSignManagerObject = new GameObject("S1FuelSignManager");
+                    _fuelSignManager = fuelSignManagerObject.AddComponent<FuelSignManager>();
+                }
+                ModLogger.Debug("Fuel sign manager initialized");
 
                 ModLogger.Debug("All fuel systems initialized successfully");
             }
@@ -484,6 +522,12 @@ namespace S1FuelMod
             try
             {
                 ModLogger.Info("S1FuelMod shutting down...");
+                if (_fuelTypeManager != null)
+                {
+                    UnityEngine.Object.Destroy(_fuelTypeManager.gameObject);
+                    _fuelTypeManager = null;
+                }
+
                 _fuelSystemManager?.Dispose();
                 _fuelUIManager?.Dispose();
                 _fuelStationManager?.Dispose();
@@ -537,6 +581,14 @@ namespace S1FuelMod
         }
 
         /// <summary>
+        /// Get the fuel sign manager instance
+        /// </summary>
+        public FuelSignManager? GetFuelSignManager()
+        {
+            return _fuelSignManager;
+        }
+
+        /// <summary>
         /// Refresh all active fuel gauges to apply preference changes
         /// </summary>
         public void RefreshFuelGauges()
@@ -566,6 +618,42 @@ namespace S1FuelMod
             catch (Exception ex)
             {
                 ModLogger.Error("Error handling new gauge UI preference change", ex);
+            }
+        }
+
+        /// <summary>
+        /// Handle fuel pricing preference changes
+        /// Call this method when fuel pricing preferences change
+        /// </summary>
+        public void OnFuelPricingPreferenceChanged()
+        {
+            try
+            {
+                ModLogger.Info($"Fuel pricing preferences changed - Dynamic: {EnableDynamicPricing}, Tier: {EnablePricingOnTier}, Curfew: {EnableCurfewFuelTax}");
+                UpdateFuelSigns();
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error handling fuel pricing preference change", ex);
+            }
+        }
+
+        /// <summary>
+        /// Update all fuel signs with current prices
+        /// </summary>
+        public void UpdateFuelSigns()
+        {
+            try
+            {
+                if (_fuelSignManager != null)
+                {
+                    _fuelSignManager.UpdateAllFuelSigns();
+                    ModLogger.Debug("Fuel signs updated with current prices");
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLogger.Error("Error updating fuel signs", ex);
             }
         }
     }
