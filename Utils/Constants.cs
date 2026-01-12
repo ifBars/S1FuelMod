@@ -9,7 +9,7 @@
         /// Mod information
         /// </summary>
         public const string MOD_NAME = "S1FuelMod";
-        public const string MOD_VERSION = "1.3.0";
+        public const string MOD_VERSION = "1.3.1";
         public const string MOD_AUTHORS = "Bars & SirTidez";
         public const string MOD_DESCRIPTION = "Adds a comprehensive fuel system to LandVehicles in Schedule I";
 
