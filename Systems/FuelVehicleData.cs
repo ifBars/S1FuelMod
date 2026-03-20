@@ -1,5 +1,6 @@
-﻿using MelonLoader;
+using MelonLoader;
 #if MONO
+using System.Collections.Generic;
 using ScheduleOne.Persistence.Datas;
 using ScheduleOne.Vehicles.Modification;
 #else
@@ -40,11 +41,11 @@ namespace S1FuelMod.Systems
         /// Constructor that matches the original VehicleData constructor and adds fuel data
         /// </summary>
         #if !MONO
-        public FuelVehicleData(Il2CppSystem.Guid guid, string code, Vector3 pos, Quaternion rot, EVehicleColor col, ItemSet vehicleContents, FuelData fuelData)
-            : base(guid, code, pos, rot, col, vehicleContents)
+        public FuelVehicleData(Il2CppSystem.Guid guid, string code, Vector3 pos, Quaternion rot, EVehicleColor col, ItemSet vehicleContents, Il2CppSystem.Collections.Generic.List<SpraySurfaceData> spraySurfaces, FuelData fuelData)
+            : base(guid, code, pos, rot, col, vehicleContents, spraySurfaces)
 #else
-        public FuelVehicleData(Guid guid, string code, Vector3 pos, Quaternion rot, EVehicleColor col, ItemSet vehicleContents, FuelData fuelData)
-            : base(guid, code, pos, rot, col, vehicleContents)
+        public FuelVehicleData(Guid guid, string code, Vector3 pos, Quaternion rot, EVehicleColor col, ItemSet vehicleContents, List<SpraySurfaceData> spraySurfaces, FuelData fuelData)
+            : base(guid, code, pos, rot, col, vehicleContents, spraySurfaces)
 #endif
         {
             if (fuelData != null)
@@ -132,7 +133,7 @@ namespace S1FuelMod.Systems
                 fuelVehicleData.GetFuelDataValues(out currentLevel, out maxCapacity, out consumptionRate);
                 return true;
             }
-            
+
             currentLevel = 0f;
             maxCapacity = 0f;
             consumptionRate = 0f;
@@ -144,6 +145,11 @@ namespace S1FuelMod.Systems
         /// </summary>
         public static FuelVehicleData FromVehicleData(VehicleData vehicleData, FuelData fuelData)
         {
+#if MONO
+            var spraySurfaces = vehicleData.SpraySurfaces ?? new List<SpraySurfaceData>();
+#else
+            var spraySurfaces = vehicleData.SpraySurfaces ?? new Il2CppSystem.Collections.Generic.List<SpraySurfaceData>();
+#endif
             return new FuelVehicleData(
 #if MONO
                 new Guid(vehicleData.GUID),
@@ -155,6 +161,7 @@ namespace S1FuelMod.Systems
                 vehicleData.Rotation,
                 Enum.Parse<EVehicleColor>(vehicleData.Color),
                 vehicleData.VehicleContents,
+                spraySurfaces,
                 fuelData
             );
         }

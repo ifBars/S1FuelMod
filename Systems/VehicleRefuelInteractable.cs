@@ -11,6 +11,7 @@ using ScheduleOne.ItemFramework;
 using ScheduleOne.DevUtilities;
 using ScheduleOne.UI;
 #else
+using Il2CppScheduleOne.Equipping;
 using Il2CppScheduleOne.Interaction;
 using Il2CppScheduleOne.PlayerScripts;
 using Il2CppScheduleOne.Vehicles;
@@ -105,7 +106,11 @@ namespace S1FuelMod.Systems
             try
             {
                 // Check if player has a gasoline can equipped
+#if MONO
                 var equippable = PlayerSingleton<PlayerInventory>.Instance?.equippedSlot?.Equippable;
+#else
+                var equippable = PlayerSingleton<PlayerInventory>.Instance?.equippedSlot?._equippable;
+#endif
                 if (equippable == null)
                 {
                     return;
@@ -125,13 +130,13 @@ namespace S1FuelMod.Systems
 
                 // Check fuel status and update interaction state
                 float fuelNeeded = _fuelSystem.MaxFuelCapacity - _fuelSystem.CurrentFuelLevel;
-                
+
                 if (fuelNeeded > 0.1f)
                 {
                     // Vehicle needs fuel - show refuel prompt
                     string fuelTypeName = GetFuelTypeDisplayName(_fuelSystem.CurrentFuelType);
                     string compatibilityTag = BuildFuelCompatibilityTag(_fuelSystem, _fuelSystem.CurrentFuelType);
-                    
+
                     SetMessage($"Refuel {_vehicle.VehicleName} [{fuelTypeName}{compatibilityTag}] (Hold)");
                     SetInteractableState(EInteractableState.Default);
                     SetInteractionType(EInteractionType.Key_Press);
@@ -152,7 +157,7 @@ namespace S1FuelMod.Systems
 #else
                 onHovered?.Invoke();
 #endif
-                
+
                 // Show the message we configured above (don't call base.Hovered to avoid recursion)
                 if (_interactionState != EInteractableState.Disabled)
                 {
@@ -180,7 +185,7 @@ namespace S1FuelMod.Systems
 #else
                     onInteractStart?.Invoke();
 #endif
-                    
+
                     // Scale effect from base class
                     Singleton<InteractionCanvas>.Instance.LerpDisplayScale(0.9f);
                 }
@@ -210,7 +215,7 @@ namespace S1FuelMod.Systems
 #else
                 onInteractEnd?.Invoke();
 #endif
-                
+
                 // Scale effect from base class
                 Singleton<InteractionCanvas>.Instance.LerpDisplayScale(1f);
 
@@ -277,4 +282,3 @@ namespace S1FuelMod.Systems
         }
     }
 }
-

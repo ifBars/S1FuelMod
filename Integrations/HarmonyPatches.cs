@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using HarmonyLib;
 using S1FuelMod.Systems;
 using S1FuelMod.Utils;
@@ -31,7 +31,7 @@ namespace S1FuelMod.Integrations
 {
     /// <summary>
     /// Harmony patches for integrating with Schedule I's vehicle system
-    /// 
+    ///
     /// IL2CPP Compatibility Notes:
     /// - JSON parsing uses explicit token type checking instead of "as" casting
     /// - JArray/JObject casting is handled differently for IL2CPP vs Mono
@@ -228,7 +228,7 @@ namespace S1FuelMod.Integrations
                     return;
 
                 var root = JObject.Parse(__result);
-                
+
                 // Get vehicles array in a way that works with both Mono and IL2CPP
                 JToken vehiclesToken;
                 if (!root.TryGetValue("Vehicles", out vehiclesToken))
@@ -269,7 +269,7 @@ namespace S1FuelMod.Integrations
                     var vehToken = vehicles[i];
                     JObject vehObj = null;
                     bool needsReplacement = false;
-                    
+
                     try
                     {
                         if (vehToken is JObject directObject)
@@ -287,7 +287,7 @@ namespace S1FuelMod.Integrations
                             ModLogger.FuelDebug($"GetSaveString: IL2CPP - Created disconnected vehicle object {i}, will replace back");
 #endif
                         }
-                        
+
                         if (vehObj == null)
                             continue;
                     }
@@ -478,17 +478,17 @@ namespace S1FuelMod.Integrations
                 ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Checking mainPath exists: {File.Exists(mainPath)}");
                 ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Checking jsonPath exists: {File.Exists(jsonPath)}");
                 ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Final jsonPath: {jsonPath}");
-                
+
                 if (!File.Exists(jsonPath))
                 {
                     ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: JSON file not found: {jsonPath}");
-                    
+
                     // Check if it's a directory and list files in it
                     if (Directory.Exists(mainPath))
                     {
                         var files = Directory.GetFiles(mainPath, "*.json");
                         ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Directory exists, JSON files found: {string.Join(", ", files)}");
-                        
+
                         // Try to find a file that contains vehicle data
                         foreach (var file in files)
                         {
@@ -507,7 +507,7 @@ namespace S1FuelMod.Integrations
                                 ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Error reading file {file}: {ex.Message}");
                             }
                         }
-                        
+
                         if (!File.Exists(jsonPath))
                         {
                             ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: No suitable JSON file found in directory");
@@ -522,7 +522,7 @@ namespace S1FuelMod.Integrations
 
                 string contents = File.ReadAllText(jsonPath);
                 ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: File contents (first 500 chars): {contents.Substring(0, Math.Min(500, contents.Length))}");
-                
+
                 var root = JObject.Parse(contents);
 
                 // More robust way to get vehicles array that works with both Mono and IL2CPP
@@ -587,7 +587,7 @@ namespace S1FuelMod.Integrations
                 {
                     var vehToken = vehicles[i];
                     JObject vehObj = null;
-                    
+
                     // Handle JObject casting for both Mono and IL2CPP
                     try
                     {
@@ -603,7 +603,7 @@ namespace S1FuelMod.Integrations
                             vehObj = JObject.Parse(vehToken.ToString());
 #endif
                         }
-                        
+
                         if (vehObj == null)
                         {
                             ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Vehicle {i} is not a JObject. Type: {vehToken.Type}");
@@ -658,7 +658,7 @@ namespace S1FuelMod.Integrations
                     // We don't have setter, but LoadFuelData covers it if needed
 
                     ModLogger.FuelDebug($"VehiclesLoader_Load_Postfix: Applied saved fuel to {guid.Substring(0, 8)}... {current:F1}");
-                    
+
                     // Remove this vehicle from the list so we know we processed it
                     allSpawnedVehicles.RemoveAll(v => v.GUID.ToString() == guid);
                 }
@@ -668,7 +668,7 @@ namespace S1FuelMod.Integrations
                 {
                     var fuelManager = _modInstance.GetFuelSystemManager();
                     var fuelSystem = fuelManager?.GetFuelSystem(vehicle);
-                    
+
                     if (fuelSystem != null && fuelSystem.CurrentFuelLevel == fuelSystem.MaxFuelCapacity)
                     {
                         fuelSystem.SetFuelLevel(fuelSystem.MaxFuelCapacity);
@@ -768,7 +768,7 @@ namespace S1FuelMod.Integrations
             {
                 // Debug: Log all equips to see what's happening
                 ModLogger.Debug($"Equippable_Equip_Postfix: Item ID = {item?.ID}, Instance = {__instance?.name}");
-                
+
                 // Only proceed if fuel system is enabled and this is a gasoline item
                 if (_modInstance?.EnableFuelSystem != true || item?.ID?.ToLower() != "gasoline")
                 {
@@ -787,7 +787,7 @@ namespace S1FuelMod.Integrations
 
                 // Add the gasoline can component to the equippable
                 var gasolineCanComponent = __instance.gameObject.AddComponent<Equippable_GasolineCan>();
-                
+
                 ModLogger.Debug("Successfully added Equippable_GasolineCan component to gasoline item");
             }
             catch (Exception ex)
@@ -811,7 +811,11 @@ namespace S1FuelMod.Integrations
                 }
 
                 var item = __instance?.ItemInstance;
+#if MONO
                 var equippable = __instance?.Equippable;
+#else
+                var equippable = __instance?._equippable;
+#endif
 
                 if (item == null || equippable == null)
                 {
@@ -854,7 +858,11 @@ namespace S1FuelMod.Integrations
                 }
 
                 var item = __instance?.ItemInstance;
+#if MONO
                 var equippable = __instance?.Equippable;
+#else
+                var equippable = __instance?._equippable;
+#endif
 
                 if (item == null || equippable == null)
                 {
@@ -973,15 +981,19 @@ namespace S1FuelMod.Integrations
                     // but don't play the start sound
                     if (__instance.EngineStartSource != null)
                     {
+#if MONO
                         __instance.EngineStartSource.volumeMultiplier = 0f;
+#else
+                        __instance.EngineStartSource.VolumeMultiplier = 0f;
+#endif
                         // Don't call Play() - skip the start sound
                     }
-                    
+
                     // Still start the volume update coroutine (it will fade out immediately due to our other patches)
                     // We need to call StartUpdateVolume manually since we're skipping the original method
                     try
                     {
-                        var method = ReflectionUtils.GetMethod(__instance.GetType(), "StartUpdateVolume", 
+                        var method = ReflectionUtils.GetMethod(__instance.GetType(), "StartUpdateVolume",
                             BindingFlags.NonPublic | BindingFlags.Instance);
                         if (method != null)
                         {
@@ -992,7 +1004,7 @@ namespace S1FuelMod.Integrations
                     {
                         ModLogger.Error("Error invoking StartUpdateVolume", invokeEx);
                     }
-                    
+
                     ModLogger.FuelDebug($"VehicleSound: Skipped engine start sound - out of fuel");
                     return false; // Skip original method
                 }

@@ -369,3 +369,5 @@ build/paths.local.props
 build/paths.props
 .cursor/rules/snyk_rules.mdc
 /.idea
+/.cursor
+/.vscode

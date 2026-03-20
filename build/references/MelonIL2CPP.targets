@@ -1,4 +1,4 @@
-﻿<Project>
+<Project>
     <!--IL2CPP-->
     <ItemGroup Label="UnityIL2CPP" Condition="'$(IsMono)' != 'true'">
         <Reference Include="Unity.AI.Navigation">
@@ -437,6 +437,9 @@
         </Reference>
     </ItemGroup>
     <ItemGroup Label="AssembliesIL2CPP" Condition="'$(IsMono)' != 'true'">
+        <Reference Include="Il2CppScheduleOne.Core">
+            <HintPath>$(S1Dir)\MelonLoader\Il2CppAssemblies\Il2CppScheduleOne.Core.dll</HintPath>
+        </Reference>
         <Reference Include="Assembly-CSharp-firstpass">
             <HintPath>$(S1Dir)\MelonLoader\Il2CppAssemblies\Assembly-CSharp-firstpass.dll</HintPath>
         </Reference>
