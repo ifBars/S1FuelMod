@@ -91,6 +91,9 @@ namespace S1FuelMod.Systems
                 // Initialize fuel station
                 InitializeFuelStation();
 
+                // Initialize the inherited prompt binding after configuring the interaction.
+                base.Start();
+
                 ModLogger.Debug($"FuelStation initialized at {transform.position}");
             }
             catch (Exception ex)
