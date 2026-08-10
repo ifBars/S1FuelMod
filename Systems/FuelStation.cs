@@ -206,18 +206,25 @@ namespace S1FuelMod.Systems
                     SetInteractableState(EInteractableState.Invalid);
                 }
 
-                // Manually invoke base functionality without calling base.Hovered() to avoid IL2CPP recursion
+                // Use the native base implementation on Mono. IL2CPP's generated virtual wrapper can
+                // recurse here, so mirror the base prompt lifecycle explicitly on that runtime.
+#if MONO
+                base.Hovered();
+#else
                 // Invoke the onHovered event
                 if (onHovered != null)
                 {
                     onHovered.Invoke();
                 }
+
+                EnsurePromptBindingData();
                 
                 // Show the interaction message if not disabled
                 if (interactionState != EInteractableState.Disabled)
                 {
                     ShowMessage();
                 }
+#endif
             }
             catch (Exception ex)
             {
@@ -226,6 +233,22 @@ namespace S1FuelMod.Systems
                 SetInteractableState(EInteractableState.Invalid);
             }
         }
+
+#if !MONO
+        /// <summary>
+        /// Mirrors the prompt initialization performed by InteractableObject.Hovered() on IL2CPP.
+        /// </summary>
+        private void EnsurePromptBindingData()
+        {
+            if (_isMessageActive && _currentBindingData != null)
+            {
+                return;
+            }
+
+            _isMessageActive = true;
+            SetInputData();
+        }
+#endif
 
         public override void StartInteract()
         {
