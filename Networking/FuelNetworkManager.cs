@@ -591,13 +591,15 @@ namespace S1FuelMod.Networking
 
             // Serialize once
             var data = MiniMessageSerializer.SerializeMessage(message);
-            int memberCount = SteamMatchmaking.GetNumLobbyMembers(lobby.LobbySteamID);
+            CSteamID lobbySteamId = GetLobbySteamId(lobby);
+            CSteamID localPlayerId = SteamUser.GetSteamID();
+            int memberCount = SteamMatchmaking.GetNumLobbyMembers(lobbySteamId);
             ModLogger.Debug($"FuelNetwork: Broadcasting {message.MessageType} to {memberCount} members ({data.Length} bytes)");
             
             for (int i = 0; i < memberCount; i++)
             {
-                var member = SteamMatchmaking.GetLobbyMemberByIndex(lobby.LobbySteamID, i);
-                if (member == lobby.LocalPlayerID) continue;
+                var member = SteamMatchmaking.GetLobbyMemberByIndex(lobbySteamId, i);
+                if (member == localPlayerId) continue;
                 ModLogger.Debug($"FuelNetwork: Sending to member {member.m_SteamID}");
                 SafeSendPacket(member, data);
             }
@@ -610,12 +612,14 @@ namespace S1FuelMod.Networking
 
             // Serialize once
             var data = MiniMessageSerializer.SerializeMessage(message);
-            int memberCount = SteamMatchmaking.GetNumLobbyMembers(lobby.LobbySteamID);
+            CSteamID lobbySteamId = GetLobbySteamId(lobby);
+            CSteamID localPlayerId = SteamUser.GetSteamID();
+            int memberCount = SteamMatchmaking.GetNumLobbyMembers(lobbySteamId);
             
             for (int i = 0; i < memberCount; i++)
             {
-                var member = SteamMatchmaking.GetLobbyMemberByIndex(lobby.LobbySteamID, i);
-                if (member == lobby.LocalPlayerID || member == excludePlayer) continue;
+                var member = SteamMatchmaking.GetLobbyMemberByIndex(lobbySteamId, i);
+                if (member == localPlayerId || member == excludePlayer) continue;
                 SafeSendPacket(member, data);
             }
         }
@@ -684,7 +688,12 @@ namespace S1FuelMod.Networking
         {
             var lobby = Singleton<Lobby>.Instance;
             if (lobby == null || !lobby.IsInLobby) return CSteamID.Nil;
-            return SteamMatchmaking.GetLobbyOwner(lobby.LobbySteamID);
+            return SteamMatchmaking.GetLobbyOwner(GetLobbySteamId(lobby));
+        }
+
+        private static CSteamID GetLobbySteamId(Lobby lobby)
+        {
+            return new CSteamID(lobby.LobbyID);
         }
     }
 
