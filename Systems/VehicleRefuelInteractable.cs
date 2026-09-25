@@ -107,7 +107,8 @@ namespace S1FuelMod.Systems
             {
                 // Check if player has a gasoline can equipped
 #if MONO
-                var equippable = PlayerSingleton<PlayerInventory>.Instance?.equippedSlot?.Equippable;
+                var equippable = ReflectionUtils.TryGetFieldOrProperty(
+                    PlayerSingleton<PlayerInventory>.Instance?.equippedSlot, "_equippable") as Equippable;
 #else
                 var equippable = PlayerSingleton<PlayerInventory>.Instance?.equippedSlot?._equippable;
 #endif

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.4 - 2026-09-25
+
+- Update Mono gasoline-can equipment lookup for the private hotbar field used by Schedule I 0.4.6 and 0.4.7.
+- Use the current audio volume property when suppressing engine-start audio for an empty tank.
+- Provide separate Release packages for 0.4.6 main/alternate and 0.4.7 beta/alternate-beta, with versioned filenames and SHA-256 metadata.
+- Keep existing preferences and fuel save data compatible.
+
 > Dates are UTC. Entries note **branch**, **author**, **commit** (short SHA), and a short description. Trello items are listed where a commit obviously implements or completes a card/checklist.
 
 ---
