@@ -812,7 +812,7 @@ namespace S1FuelMod.Integrations
 
                 var item = __instance?.ItemInstance;
 #if MONO
-                var equippable = __instance?.Equippable;
+                var equippable = ReflectionUtils.TryGetFieldOrProperty(__instance, "_equippable") as Equippable;
 #else
                 var equippable = __instance?._equippable;
 #endif
@@ -859,7 +859,7 @@ namespace S1FuelMod.Integrations
 
                 var item = __instance?.ItemInstance;
 #if MONO
-                var equippable = __instance?.Equippable;
+                var equippable = ReflectionUtils.TryGetFieldOrProperty(__instance, "_equippable") as Equippable;
 #else
                 var equippable = __instance?._equippable;
 #endif
@@ -981,11 +981,7 @@ namespace S1FuelMod.Integrations
                     // but don't play the start sound
                     if (__instance.EngineStartSource != null)
                     {
-#if MONO
-                        __instance.EngineStartSource.volumeMultiplier = 0f;
-#else
                         __instance.EngineStartSource.VolumeMultiplier = 0f;
-#endif
                         // Don't call Play() - skip the start sound
                     }
 

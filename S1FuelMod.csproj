@@ -15,6 +15,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
 
         <RootNamespace>S1FuelMod</RootNamespace>
+        <Version>1.3.4</Version>
 
         <Configurations>Debug Mono;Release Mono;Debug IL2CPP;Release IL2CPP</Configurations>
     </PropertyGroup>

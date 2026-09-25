@@ -38,16 +38,25 @@ A comprehensive fuel system mod for *Schedule I*, adding realistic fuel consumpt
 
 ### Prerequisites
 - **MelonLoader** installed for *Schedule I*
-- Game version: Both Mono and IL2CPP builds supported
+- Game version: 0.4.6 stable or 0.4.7 beta; choose the matching game version and runtime package.
 
 ### Installation Steps
-1. Download the latest **S1FuelMod.dll** for your game version
+1. Download and extract the package matching your game version and runtime
 2. Place the DLL into the `Mods` folder within your *Schedule I* directory
 3. Launch the game — fuel mechanics activate automatically for all land vehicles
 
 ### Version Compatibility
-- **Mono Build**: `S1FuelMod_Mono.dll` for alternate branch
-- **IL2CPP Build**: `S1FuelMod_Il2cpp.dll` for main branch
+
+S1FuelMod 1.3.4 ships four separate packages. Install **one** DLL and remove older S1FuelMod DLLs first.
+
+| Game version | Steam branch | Package suffix | DLL |
+|---|---|---|---|
+| 0.4.6 | main / none | `ScheduleI-0.4.6-IL2CPP.zip` | `S1FuelMod-IL2CPP.dll` |
+| 0.4.6 | alternate | `ScheduleI-0.4.6-Mono.zip` | `S1FuelMod-Mono.dll` |
+| 0.4.7 | beta | `ScheduleI-0.4.7-IL2CPP.zip` | `S1FuelMod-IL2CPP.dll` |
+| 0.4.7 | alternate-beta | `ScheduleI-0.4.7-Mono.zip` | `S1FuelMod-Mono.dll` |
+
+Choose by the installed game version as well as the branch name. When 0.4.7 becomes stable, use the 0.4.7 package for your runtime; later game patches still require compatibility checks. Existing fuel settings and save data are retained.
 
 ---
 
@@ -108,7 +117,7 @@ All settings are available via the **MelonPreferences** system under the `S1Fuel
 
 ### **Prerequisites**
 - Visual Studio 2019/2022 or JetBrains Rider
-- .NET Framework 4.7.2+
+- .NET SDK with .NET 6 and .NET Standard 2.1 targeting support
 - A working installation of *Schedule I* (Mono and/or IL2CPP)
 
 ### **Get Started**
@@ -118,7 +127,7 @@ cd S1FuelMod
 ```
 
 ### **Configure Game Paths**
-Update the paths in `build/paths.props` for your target installations:
+Create the ignored `build/paths.local.props` with a `<Project><PropertyGroup>` wrapper around your local paths:
 
 ```xml
 <S1MonoDir>D:\SteamLibrary\steamapps\common\Schedule I_alternate</S1MonoDir>
@@ -136,6 +145,17 @@ dotnet build --configuration "Release IL2CPP"
 # For debugging with UnityExplorer
 dotnet build --configuration "Debug IL2CPP" /p:UnityExplorer=true
 ```
+
+### Release packages
+
+The packager rebuilds both runtimes with auto-deployment disabled and includes only the mod DLL. It writes SHA-256 metadata beside the archives. Supply installations for the selected game version:
+
+```powershell
+./assets/package-mod.ps1 -GameVersion 0.4.6 -MonoGamePath 'D:/Games/ScheduleI-046-Mono' -Il2CppGamePath 'D:/Games/ScheduleI-046-IL2CPP'
+./assets/package-mod.ps1 -GameVersion 0.4.7 -MonoGamePath 'D:/Games/ScheduleI-047-Mono' -Il2CppGamePath 'D:/Games/ScheduleI-047-IL2CPP'
+```
+
+Output defaults to `bin/packages`. Use a fresh `-OutputRoot` for a new candidate; existing archives are not overwritten. The game-version label does not detect the installation version, so verify the actual game version before packaging and runtime testing.
 
 ### **Auto-Deploy Features**
 The build process automatically:
