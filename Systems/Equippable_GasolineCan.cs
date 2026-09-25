@@ -384,6 +384,9 @@ namespace S1FuelMod.Systems
         /// <summary>
         /// Get fuel type display name
         /// </summary>
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private string GetFuelTypeDisplayName(FuelTypeId fuelTypeId)
         {
             if (FuelTypeManager.Instance != null)
@@ -400,6 +403,9 @@ namespace S1FuelMod.Systems
         /// <summary>
         /// Build fuel compatibility tag similar to FuelStation
         /// </summary>
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private string BuildFuelCompatibilityTag(VehicleFuelSystem fuelSystem, FuelTypeId fuelType)
         {
             if (fuelSystem == null)
@@ -434,6 +440,9 @@ namespace S1FuelMod.Systems
         /// <summary>
         /// Show a message to the player (similar to FuelStation)
         /// </summary>
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private void ShowMessage(string message, MessageType type)
         {
             try

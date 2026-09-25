@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Events;
 using MelonLoader;
 #if MONO
@@ -71,15 +71,27 @@ namespace S1FuelMod.Systems
         /// </summary>
         public string NetworkID => _landVehicle?.NetworkObject?.ObjectId.ToString() ?? _vehicleGUID;
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public FuelTypeId CurrentFuelType => _currentFuelType;
         public float FuelQuality => _fuelQuality;
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public VehicleType VehicleType => _vehicleType;
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public FuelTypeId GetRecommendedFuelType()
         {
             return FuelTypeManager.Instance?.GetRecommendedFuelType(_vehicleType) ?? FuelTypeId.Regular;
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public bool IsFuelCompatible(FuelTypeId fuelTypeId)
         {
             return FuelTypeManager.Instance?.IsFuelCompatible(fuelTypeId, _vehicleType) ?? true;
@@ -683,6 +695,9 @@ namespace S1FuelMod.Systems
             }
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public bool ChangeFuelType(FuelTypeId newFuelType, float refuelAmount)
         {
             try
@@ -712,6 +727,9 @@ namespace S1FuelMod.Systems
             }
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private void CalculateFuelMixingEffect(FuelTypeId newFuelType, float refuelAmount)
         {
             try
@@ -741,6 +759,9 @@ namespace S1FuelMod.Systems
             }
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private float GetFuelCompatibilityScore(FuelTypeId fuel1, FuelTypeId fuel2)
         {
             if (fuel1 == fuel2)

@@ -1,4 +1,4 @@
-﻿namespace S1FuelMod.Utils
+namespace S1FuelMod.Utils
 {
     /// <summary>
     /// Constants and configuration values for the S1FuelMod
@@ -9,7 +9,7 @@
         /// Mod information
         /// </summary>
         public const string MOD_NAME = "S1FuelMod";
-        public const string MOD_VERSION = "1.3.4";
+        public const string MOD_VERSION = "1.3.5";
         public const string MOD_AUTHORS = "Bars & SirTidez";
         public const string MOD_DESCRIPTION = "Adds a comprehensive fuel system to LandVehicles in Schedule I";
 

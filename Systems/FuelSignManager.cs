@@ -447,6 +447,9 @@ namespace S1FuelMod.Systems
         /// </summary>
         /// <param name="position">Position index (0-7)</param>
         /// <returns>FuelTypeId for the position</returns>
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public FuelTypeId GetFuelTypeForPosition(int position)
         {
             if (position >= 0 && position < 4)

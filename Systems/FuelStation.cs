@@ -1,4 +1,4 @@
-﻿using S1FuelMod.Systems.FuelTypes;
+using S1FuelMod.Systems.FuelTypes;
 using S1FuelMod.Utils;
 #if MONO
 using ScheduleOne.DevUtilities;
@@ -675,6 +675,9 @@ namespace S1FuelMod.Systems
 #endif
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private bool IsFuelTypeCompatible(FuelTypeId fuelType)
         {
             if (_compatibleFuelTypes == null)
@@ -693,6 +696,9 @@ namespace S1FuelMod.Systems
             return false;
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private FuelTypeId GetFallbackFuelType()
         {
             if (_compatibleFuelTypes != null && _compatibleFuelTypes.Length > 0)
@@ -706,6 +712,9 @@ namespace S1FuelMod.Systems
         /// <summary>
         /// Check if fuel type is compatible using cached compatible fuel types
         /// </summary>
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private bool IsFuelTypeCompatibleCached(FuelTypeId fuelType)
         {
             if (_cachedCompatibleFuelTypes == null)
@@ -727,6 +736,9 @@ namespace S1FuelMod.Systems
         /// <summary>
         /// Get fallback fuel type using cached compatible fuel types
         /// </summary>
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private FuelTypeId GetFallbackFuelTypeCached()
         {
             if (_cachedCompatibleFuelTypes != null && _cachedCompatibleFuelTypes.Length > 0)
@@ -771,6 +783,9 @@ namespace S1FuelMod.Systems
             return GetFuelPriceForType(_selectedFuelType);
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private float GetFuelPriceForType(FuelTypeId fuelTypeId)
         {
             if (_fuelTypePrices.TryGetValue(fuelTypeId, out float cachedPrice))
@@ -782,6 +797,9 @@ namespace S1FuelMod.Systems
             return fallbackPrice;
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private string GetFuelTypeDisplayName(FuelTypeId fuelTypeId)
         {
             if (FuelTypeManager.Instance != null)
@@ -796,6 +814,9 @@ namespace S1FuelMod.Systems
             return fuelTypeId.ToString();
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private string BuildFuelCompatibilityTag(VehicleFuelSystem fuelSystem, FuelTypeId fuelType)
         {
             if (fuelSystem == null)
@@ -953,6 +974,9 @@ namespace S1FuelMod.Systems
         /// </summary>
         /// <param name="message">Message to show</param>
         /// <param name="type">Message type for color coding</param>
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private void ShowMessage(string message, MessageType type)
         {
             try

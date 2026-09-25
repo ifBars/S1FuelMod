@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.5 - 2026-09-25
+
+- Fix the IL2CPP assembly-registration diagnostic by hiding managed-only enum methods and properties from native class injection.
+- Preserve managed fuel-type behavior and verify the fix in both 0.4.6 and 0.4.7 IL2CPP, with Mono regression checks.
+
 ## 1.3.4 - 2026-09-25
 
 - Update Mono gasoline-can equipment lookup for the private hotbar field used by Schedule I 0.4.6 and 0.4.7.

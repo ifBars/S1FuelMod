@@ -114,11 +114,17 @@ namespace S1FuelMod.Systems.FuelTypes
             SetRecommendation(VehicleType.CyberTruck, FuelTypeId.Diesel);
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private void SetRecommendation(VehicleType vehicleType, FuelTypeId fuelTypeId)
         {
             _recommendedFuelTypes[vehicleType] = fuelTypeId;
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public FuelTypeId GetRecommendedFuelType(VehicleType vehicleType)
         {
             return _recommendedFuelTypes.TryGetValue(vehicleType, out var recommended)
@@ -126,6 +132,9 @@ namespace S1FuelMod.Systems.FuelTypes
                 : FuelTypeId.Regular;
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public bool IsFuelCompatible(FuelTypeId fuelTypeId, VehicleType vehicleType)
         {
             return _fuelTypes.TryGetValue(fuelTypeId, out var fuelType) && fuelType.IsCompatibleWith(vehicleType);
@@ -139,6 +148,9 @@ namespace S1FuelMod.Systems.FuelTypes
             return _fuelTypes.TryGetValue(fuelTypeId, out var fuelType) ? fuelType : null;
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public string GetFuelDisplayName(FuelTypeId fuelTypeId)
         {
             return _fuelTypes.TryGetValue(fuelTypeId, out var fuelType)
@@ -146,6 +158,9 @@ namespace S1FuelMod.Systems.FuelTypes
                 : "Unknown";
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public float GetFuelPrice(FuelTypeId fuelTypeId)
         {
             if (!_fuelTypes.TryGetValue(fuelTypeId, out var fuelType))
@@ -156,6 +171,9 @@ namespace S1FuelMod.Systems.FuelTypes
             return Constants.Fuel.FUEL_PRICE_PER_LITER * fuelType.PriceMultiplier;
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public float GetFuelTorqueModifier(FuelTypeId fuelTypeId)
         {
             return _fuelTypes.TryGetValue(fuelTypeId, out var fuelType)
@@ -163,6 +181,9 @@ namespace S1FuelMod.Systems.FuelTypes
                 : 1.0f;
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public float GetFuelAccelerationModifier(FuelTypeId fuelTypeId)
         {
             return _fuelTypes.TryGetValue(fuelTypeId, out var fuelType)
@@ -170,6 +191,9 @@ namespace S1FuelMod.Systems.FuelTypes
                 : 1.0f;
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public float GetFuelTopSpeedModifier(FuelTypeId fuelTypeId)
         {
             return _fuelTypes.TryGetValue(fuelTypeId, out var fuelType)
@@ -177,6 +201,9 @@ namespace S1FuelMod.Systems.FuelTypes
                 : 1.0f;
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public Color GetFuelUIColor(FuelTypeId fuelTypeId)
         {
             return _fuelTypes.TryGetValue(fuelTypeId, out var fuelType)
@@ -184,6 +211,9 @@ namespace S1FuelMod.Systems.FuelTypes
                 : Color.white;
         }
 
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public float GetFuelEfficiency(FuelTypeId fuelTypeId, VehicleType vehicleType, float speedKmh, float throttleInput)
         {
             if (!_fuelTypes.TryGetValue(fuelTypeId, out var fuelType))
@@ -220,6 +250,9 @@ namespace S1FuelMod.Systems.FuelTypes
         }
 
 #if MONO
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         public List<FuelTypeId> GetCompatibleFuelTypes(VehicleType vehicleType)
         {
             var compatible = new List<FuelTypeId>();

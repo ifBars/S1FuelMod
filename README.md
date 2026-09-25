@@ -47,7 +47,7 @@ A comprehensive fuel system mod for *Schedule I*, adding realistic fuel consumpt
 
 ### Version Compatibility
 
-S1FuelMod 1.3.4 ships four separate packages. Install **one** DLL and remove older S1FuelMod DLLs first.
+S1FuelMod 1.3.5 ships four separate packages. Install **one** DLL and remove older S1FuelMod DLLs first.
 
 | Game version | Steam branch | Package suffix | DLL |
 |---|---|---|---|
