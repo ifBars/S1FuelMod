@@ -1,6 +1,6 @@
 {
   "name": "S1FuelMod",
-  "version_number": "1.3.4",
+  "version_number": "1.3.5",
   "website_url": "https://github.com/ifBars/S1FuelMod",
   "description": "Vehicle fuel consumption, gas stations, gasoline cans, fuel gauges, and persistent fuel levels for Schedule I.",
   "dependencies": [

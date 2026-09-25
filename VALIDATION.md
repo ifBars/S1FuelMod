@@ -1,4 +1,4 @@
-# S1FuelMod 1.3.4 validation
+# S1FuelMod 1.3.5 validation
 
 The release was checked against Schedule I 0.4.6f13 and 0.4.7f6, separately for Mono and IL2CPP.
 
@@ -21,7 +21,7 @@ Each probe used an isolated install with only S1FuelMod and a temporary validati
 
 The original 1.3.3 source failed both Mono builds with three missing hotbar-equipment member errors and one missing audio-volume member error. Both original IL2CPP builds compiled; an original IL2CPP runtime baseline also passed the basic fuel probe.
 
-The existing IL2CPP registration diagnostic (`Assembly S1FuelMod-IL2CPP.dll is not registered in il2cpp`) remains. Both tested IL2CPP loader versions continued registering the components and passed the gameplay checks. This release does not claim to fix that diagnostic or compatibility with other mods.
+The 1.3.4 baseline emitted `Assembly S1FuelMod-IL2CPP.dll is not registered in il2cpp` twice during component registration. A temporary trace identified native class lookups for the managed `FuelTypeId` and `VehicleType` enums. Class injection inspects private helpers and property accessors as well as public methods. Version 1.3.5 marks managed-only enum signatures with `HideFromIl2Cpp`; both IL2CPP logs are now free of the diagnostic. A runtime reflection check verifies that injected component methods exposing mod-owned enums are hidden, and gameplay checks exercise fuel recommendations, compatibility, pricing, and changing fuel type through their managed methods. All four runtime probes passed again.
 
 These are single-player component and integration probes, not a full driving, pump-payment, save/reload, or multiplayer regression test. Network initialization used the local test Steam emulator; real Steam multiplayer was not retested. Local game assemblies, generated wrappers, saves, screenshots, and temporary probes are excluded from source and packages.
 

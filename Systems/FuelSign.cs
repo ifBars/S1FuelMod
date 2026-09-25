@@ -184,6 +184,9 @@ namespace S1FuelMod.Systems
         /// </summary>
         /// <param name="position">Position index (0-7)</param>
         /// <returns>FuelTypeId for the position</returns>
+#if !MONO
+        [Il2CppInterop.Runtime.Attributes.HideFromIl2Cpp]
+#endif
         private FuelTypeId GetFuelTypeForPosition(int position)
         {
             // Front side (0-3): Regular, Mid-Grade, Premium, Diesel
